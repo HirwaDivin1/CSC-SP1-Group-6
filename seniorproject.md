@@ -3,7 +3,10 @@ Individual Project Scope: Resilient Case Synchronization
 Student: Kapil Tamang
 Course: Distributed Systems Senior Project
 Assignment: Problem Understanding Paper
+
+
 1. What problem are you investigating?
+
 The research problem in question is the ability of various organizations to exchange information on their cases in case of crashes or disconnections in the computer systems. Case Management System (CMS) is a program that assists organizations in managing their files, allocation of tasks, monitoring the progress, and solving cases. Such systems are utilized in government bodies, courts, hospitals, and corporations. The exchange of information between multiple services may result in important changes being missed, duplicated, or delayed.
 An example from real life is the Los Angeles County District Attorney's Office. In September 2026, the County issued a Request for Proposal (RFP), identified as RFP-DA-IT01, for a new cloud-based case management solution to replace several legacy solutions and integrate with courts and other justice organizations. For instance, let us assume a prosecutor is entering an update to a criminal case but the service that is supposed to share this information is not operational. The prosecutor’s system may be able to save the update but the other organization will still have outdated data. It is a hypothetical example and not any known incident involving Los Angeles County.
 
