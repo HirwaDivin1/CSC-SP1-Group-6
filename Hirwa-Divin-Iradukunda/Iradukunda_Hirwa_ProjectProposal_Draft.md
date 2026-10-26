@@ -27,7 +27,7 @@ I also expect there are cases where the coordinator will not help, for example w
 
 ## Open questions
 - Can fanotify see writes that a machine makes to a mounted network share? The client side of the design depends on this.
-- Is NFS realistic to support, or should the project focus on Samba?
+- Which file-sharing protocol should come first? I plan to focus on Samba (SMB), because it runs a separate process for each client and most reported remote-encryption attacks target SMB shares. NFS serves every client from shared kernel threads, so identifying the attacking client would need extra kernel tracing (eBPF). I would treat NFS support as a stretch goal.
 - How much of the coordinator can be finished in one semester, after the single-machine agent works?
 
 ## Existing work
