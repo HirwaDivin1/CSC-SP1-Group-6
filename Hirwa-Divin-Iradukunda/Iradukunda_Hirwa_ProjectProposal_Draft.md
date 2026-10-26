@@ -3,7 +3,7 @@
 ## Problem
 Ransomware does not always run on the machine whose files it encrypts. Microsoft's 2023 Digital Defense Report found that about 60% of human-operated ransomware attacks used remote encryption, where a compromised machine encrypts files on a network share. In that case the file server only sees its own file-sharing service (Samba) writing to disk. It cannot tell which client is responsible, and stopping the service would cut off every user. Microsoft also reported that over 90% of attacks that reached the ransom stage involved unmanaged devices, so the attacking machine usually has no security software of its own.
 
-I would like to work on this problem for Linux machines that share files with each other.
+The idea for this project came from NSF Award 2348719, a research project on defending research computing against ransomware, which points to a "shortage of host-based techniques that would proactively mitigate the threat." I would like to work on this problem for Linux machines that share files with each other.
 
 ## Proposed idea
 I propose a small distributed system with two parts.
@@ -34,6 +34,7 @@ I also expect there are cases where the coordinator will not help, for example w
 Commercial tools already do parts of this on Windows. Microsoft Defender's automatic attack disruption contains devices and IPs across a network, and Sophos CryptoGuard blocks remote machines that encrypt shared files. Open-source Linux tools like Wazuh and Falco collect events but do not include a ransomware detector that pauses processes. Research such as REDFISH (Morato et al., 2018) detects ransomware on network shares from traffic, but it cannot stop the process. I have not found an open-source Linux system that combines these pieces.
 
 ## Sources
+- NSF Award 2348719 (source of the project idea): https://www.nsf.gov/awardsearch/show-award?AWD_ID=2348719
 - Microsoft Digital Defense Report 2023: https://www.microsoft.com/en-gb/security/security-insider/microsoft-digital-defense-report-2023-state-of-cybercrime
 - Scaife et al., "CryptoLock (and Drop It): Stopping Ransomware Attacks on User Data," IEEE ICDCS 2016: https://www.cise.ufl.edu/~butler/pubs/icdcs16.pdf
 - Microsoft Defender automatic attack disruption: https://learn.microsoft.com/en-us/defender-xdr/automatic-attack-disruption
