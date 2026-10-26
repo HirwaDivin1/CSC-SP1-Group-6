@@ -6,7 +6,6 @@ Student: Kapil Tamang
 Course: Distributed Systems Senior Project
 Assignment: Problem Understanding Paper
 
-
 1. What problem are you investigating?
 
 The research problem in question is the ability of various organizations to exchange information on their cases in case of crashes or disconnections in the computer systems. Case Management System (CMS) is a program that assists organizations in managing their files, allocation of tasks, monitoring the progress, and solving cases. Such systems are utilized in government bodies, courts, hospitals, and corporations. The exchange of information between multiple services may result in important changes being missed, duplicated, or delayed.
@@ -26,6 +25,7 @@ The documentation for Microsoft Transactional Outbox describes the importance of
 
 4. What solutions already exist?
 A number of different solutions already exist for dealing with reliability issues in distributed systems. In the PostgreSQL database, there are database transactions that maintain consistency of related changes in the database. In Microsoft's Transactional Outbox solution, the database change and the related outbound message are stored together, enabling the latter to be sent even in case another service was unavailable at the moment. Camunda 8 is a workflow engine which coordinates services and retries incomplete work.	
+
 Each approach has strengths and limitations. PostgreSQL transactions protect database operations but do not automatically synchronize separate agencies. The Transactional Outbox pattern helps preserve pending messages, but duplicate processing and message ordering still require attention. Camunda helps manage workflows and recovery, but it introduces additional complexity and does not automatically prevent repeated operations. My goal is to understand how these existing methods could support reliable case synchronization.
 
 5. What is the most important thing you still do not know?
