@@ -1,39 +1,42 @@
-# LockSentry: A Distributed Ransomware Early-Warning System for Linux
+# Proposal: Distributed Ransomware Early Warning for Linux
 
-*Mock project proposal, Senior Project II (draft; name is a placeholder)*
+## Problem
+Ransomware does not always run on the machine whose files it encrypts. Microsoft's 2023 Digital Defense Report found that about 60% of human-operated ransomware attacks used remote encryption, where a compromised machine encrypts files on a network share. In that case the file server only sees its own file-sharing service (Samba) writing to disk. It cannot tell which client is responsible, and stopping the service would cut off every user. Microsoft also reported that over 90% of attacks that reached the ransom stage involved unmanaged devices, so the attacking machine usually has no security software of its own.
 
-## What I am building
-A small distributed system that stops ransomware on a group of Linux machines. Each machine runs an **agent** that detects ransomware behavior and **freezes** the process on its own. A **coordinator** connects the agents. It identifies which client is encrypting a shared folder on the file server and sends signed warnings to the other machines. Agents keep protecting their machines when the coordinator is unreachable, and they catch up when they reconnect.
+NSF Award 2348719, which funds ransomware defense for research computing, describes a "shortage of host-based techniques that would proactively mitigate the threat." I would like to work on that gap for Linux machines that share files with each other.
 
-## The problem
-In about 60% of human-operated ransomware attacks, files are encrypted over the network from a different machine (Microsoft, 2023). The file server sees only its file-sharing service (Samba) writing, so it cannot tell which client is attacking. Freezing that service would cut off every user. In over 90% of attacks that reached the ransom stage, the attackers used unmanaged devices (Microsoft, 2024), so the server must be able to defend itself. NSF Award 2348719 also points to *"the shortage of host-based techniques that would proactively mitigate the threat."*
+## Proposed idea
+I propose a small distributed system with two parts.
 
-## How it works
-1. **Agent (every machine):** watches file activity (fanotify) and scores each process on cheap warning signs: canary files, bursts of rewrites, renames and deletes, and new extensions. It checks contents (entropy, file type) only for processes already under suspicion, and freezes the process tree with Linux control groups.
-2. **File server:** each Samba client gets its own server process, so the agent can tell which client and user is encrypting. It freezes only that client's session and blocks its IP; other users keep working.
-3. **Coordinator:** keeps a numbered log of signed warnings, such as an encryptor's file hash. Agents pull any warnings they missed with `Sync(after_seq)`, and applying the same warning twice has no effect.
-4. **Safety rules:** a warning from another machine can only *freeze* a program whose hash matches exactly. It never kills, deletes or runs anything. A hash goes fleet-wide only after two machines report it, and system packages can never be targeted.
-5. **Recovery:** btrfs snapshots restore exactly the files on the affected list.
+The first part is an agent that runs on each Linux machine. It would watch file activity through fanotify and look for behavior typical of ransomware, such as touching decoy ("canary") files, rewriting or renaming many files in a short time, or file contents suddenly looking random. When enough of these signs line up, the agent would pause the process with Linux control groups instead of killing it, so a person can decide what to do. This follows the approach of CryptoDrop (Scaife et al., 2016), which stopped ransomware after a median of 10 lost files.
 
-## Demo (4 VMs on one laptop)
-A client encrypts a shared folder on the file server. The server identifies that client, freezes its session and blocks it, while a second client keeps working. The same encryptor then starts later on another client and is frozen immediately by the warning. Finally, I cut a client off the network: it still protects itself, and it syncs when reconnected.
+The second part is a coordinator that connects the agents. On a file server, Samba starts a separate process for each client session, so the agent could map suspicious writes back to a client and user and pause only that session. The coordinator would then share what was learned, such as the hash of the encrypting program, with the other machines. Each agent has to keep working on its own if the coordinator is unreachable and catch up when it reconnects. This is where most of the distributed systems work is: making sure warnings are not lost or applied twice, and that the system behaves well during network failures.
 
-## How I will know it works
-| Measure | Target |
-|---|---|
-| Files lost on the first machine | Median ≤ 10 (CryptoDrop, 2016) |
-| Files lost on later machines (staggered launch) | ≈ 0 |
-| Correct client identified | 100%, checked against Samba's audit log |
-| Protection while disconnected | Same as a standalone agent; no alerts lost |
-| Fake warning from a compromised agent | Freezes nothing |
+A coordinator that can tell every machine what to do is also a target. The 2021 Kaseya attack showed attackers using a management channel to push ransomware to every connected machine. Because of that, I expect remote warnings to be signed and limited to pausing a program with an exact matching hash, never deleting or killing anything.
 
-I will also show where the coordinator does **not** help: when every machine starts encrypting at the same moment.
+## How it could be evaluated
+I plan to test the system on a few virtual machines on one laptop, using a simple encryption program I write myself that only touches a test folder. Things I would measure:
 
-## Scope
-**In:** agents, coordinator (gRPC with mutual TLS), Samba file server, a status page, and 4 virtual machines. **Out:** NFS client identification, peer-to-peer designs, Windows, VMware ESXi, and real ransomware samples. Weeks 1–7: the single-machine agent. **Week 8 checkpoint:** if the agent is reliable, weeks 8–11 build the coordinator, week 12 runs the evaluation, week 13 is buffer, and week 14 is the demo.
+- how many files are lost before the agent pauses the process
+- whether the file server identifies the correct client
+- whether a machine that is disconnected still protects itself
+- how quickly a warning reaches the other machines
+- whether a fake warning from a compromised agent can cause harm
+
+I also expect there are cases where the coordinator will not help, for example when an attacker starts encryption on every machine at the same moment. Measuring that would be part of the results.
+
+## Open questions
+- Can fanotify see writes that a machine makes to a mounted network share? The client side of the design depends on this.
+- Is NFS realistic to support, or should the project focus on Samba?
+- How much of the coordinator can be finished in one semester, after the single-machine agent works?
+
+## Existing work
+Commercial tools already do parts of this on Windows. Microsoft Defender's automatic attack disruption contains devices and IPs across a network, and Sophos CryptoGuard blocks remote machines that encrypt shared files. Open-source Linux tools like Wazuh and Falco collect events but do not include a ransomware detector that pauses processes. Research such as REDFISH (Morato et al., 2018) detects ransomware on network shares from traffic, but it cannot stop the process. I have not found an open-source Linux system that combines these pieces.
 
 ## Sources
 - NSF Award 2348719: https://www.nsf.gov/awardsearch/show-award?AWD_ID=2348719
 - Microsoft Digital Defense Report 2023: https://www.microsoft.com/en-gb/security/security-insider/microsoft-digital-defense-report-2023-state-of-cybercrime
-- Scaife et al., "CryptoLock (and Drop It)," ICDCS 2016: https://www.cise.ufl.edu/~butler/pubs/icdcs16.pdf
-- Vasilomanolakis et al., "Taxonomy and Survey of Collaborative Intrusion Detection," ACM Computing Surveys, 2015
+- Scaife et al., "CryptoLock (and Drop It): Stopping Ransomware Attacks on User Data," IEEE ICDCS 2016: https://www.cise.ufl.edu/~butler/pubs/icdcs16.pdf
+- Microsoft Defender automatic attack disruption: https://learn.microsoft.com/en-us/defender-xdr/automatic-attack-disruption
+- Sophos remote ransomware whitepaper: https://assets.sophos.com/X24WTUEQ/at/88p2fwqbfg9sc3jfq488ng4/sophos-remote-ransomware-guide-wp.pdf
+- Morato et al., "Ransomware early detection by the analysis of file sharing traffic," JNCA 2018
