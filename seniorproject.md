@@ -64,7 +64,7 @@ Kapil Tamang
 
     If there are few mistakes in confirmation and fewer reservation conflicts based on the results, I could explore the process further. In case there is no difference in results, then I will revise its coordination rules. However, I do acknowledge that the simulated system may not reflect all challenges faced by the organizations in reality.
 
-Your Individual Scope
+6. Your Individual Scope
     The scope of my individual project is going to be ARSR in B05 – Resilient Case Management Services.
 
     My individual mechanism is going to study three interrelated functionalities. First, it is going to discover referrals that should be revalidated in case some important conditions have changed. Second, it is going to coordinate virtual treatment appointments to avoid conflicting confirmed appointments. Third, it is going to restore unfinished referral tasks in case of a crash of the provider's service while verifying that it is still valid.
