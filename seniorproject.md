@@ -6,71 +6,144 @@ Kapil Tamang
 
 1. What problem are you investigating?
 
-    The problem under examination is the issue of coordination of mental health referral procedures by various organizations in respect to the clients who take     part in criminal proceedings, specifically clients in detention who may require mental health treatment. Case Management System (CMS) is computer software used by organizations in the process of managing the information about the records, assignments, cases, and coordination of services. In my project, I study the case where mental health referrals, appointments, and other information have to be coordinated by separate organizations.   
+    My senior project deals with the issue of discovering receipt management related to maintaining correct discovery receipt records when an authorized evidence document is provided to the defense counsel, but problems with communication arise and/or the document is revised further. I choose to concentrate on the LA County District Attorney's Office (LADA) and one of its processes related to the discovery management process.
 
-    One practical example of such an environment is the Los Angeles County District Attorney's Office. On September 2026, Los Angeles County issued an RFP (Request for Proposals) RFP-DA-IT01 that seeks an innovative cloud-based case management system to replace the outdated application system and interface with the court systems. Los Angeles County has mental health diversion programs that provide assistance to qualifying candidates to get treatment and community services. These programs require interaction between different organizations each having its own set of roles and different computer systems.
-
+    In September 2026, LADA released Request for Proposals (RFP) RFP-DA-IT01 in order to find an updated, cloud-based Case Management System (CMS) that will substitute the obsolete applications. Section 2.2 describes problems with discovery compliance due to a fragmented IT infrastructure of the organization. Section 3.1 states that the new system should provide such features as Brady obligations, statutory discovery, workflow automation, document management, and audit. Section 9 also mentions discovery management and compliance tracking as the fields for the demonstration by the vendors. 
+    
     https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
+   
+    The discovery management process will be limited to one operation, that is, verification of the delivery of one approved discovery document that has been delivered to the defense lawyer’s office. The problem will occur if the two services, which deliver the document from the sender to the receiver, are separate entities and no acknowledgment of receipt takes place before updating the case management system.
 
-    To cite an illustration, consider a situation whereby an individual in custody has received approval for a mental health diversion program. A case manager refers the individual to a treatment facility, which subsequently sets up an appointment with the facility. Normally, the facility would confirm the appointment, the case manager would get the confirmation, and everything would proceed as per the approved plan. But what if the treatment plan of the individual was altered, while at the same time another case manager sought the same appointment? What if, besides that, the computer system of the facility crashed?
+    For instance, assume there is a fictitious criminal case referred to as LADA-104. The version 1 of an evidence document, which has been approved by the deputy district attorney for disclosure purposes, will be disclosed via the case management system through a delivery service. The receiving service will acknowledge receipt of the document.
 
-    There are three related problems that could emerge from such a scenario. One, the original referral may become obsolete due to changes in the situation. Two, both organizations might assume that they had booked the same appointment. Three, when the provider’s database becomes operational again, it will process either an outdated request or perform an action that has already been performed. These are failure situations, not incidents at Los Angeles County.
+    However, assume that receiving service gets version 1, but the acknowledgment is never sent due to the interruption of the network connection. During the interruption, the prosecutor agrees to version 2 of the disclosure. Once communication is restored, the system will get an old acknowledgment or try to send version 1.
 
-    The aim of my research is how individual services may identify obsolete referrals, arrange scarce treatment sessions and resume incomplete processes without making wrong entries. I am not researching how to ascertain whether an individual is eligible for mental health diversion or which medical care he needs. This decision must remain with relevant legal and medical specialists.
+    Without proper validation, the case management system will treat this acknowledgment as the approval of version 2. Duplicate delivery acknowledgments or undelivered disclosures are another consequence of lack of proper validation.
+
+    My project addresses this particular technical issue, not the whole process of discovery. The following five features will help to handle one process of disclosure: version validation, reliable delivery, fail-safe delivery, deadline check, and audit log.
+
+    The system will not verify if the evidence is to be disclosed according to the law, approve legal documents or whether technical acknowledgment can be considered a proof of service according to the law. These issues should be addressed by legal professionals.
 
 2. Who or what is affected by it?
 
-    It is possible that the problem may affect people who are involved in cases of crimes, which requires mental health treatment, prosecution, defense, courts, corrections, case managers, and providers of the treatment. Every entity will have its responsibility; however, they might require the information from one another to be able to perform their tasks. In case the referral is outdated or the appointment was wrongly entered, the concerned personnel may take more time to understand what is happening, thereby causing delay to the client.
+    The first party of interest is a Deputy District Attorney, tasked with overseeing the process of discovery disclosures at the Los Angeles County District Attorney’s Office. This individual will be tracking all documents prepared, approved, transmitted, and receipt confirmed.
 
-    For instance, consider the scenario where a treatment facility first accepts a referral of a patient who is transitioning from incarceration into a community setting. In cases where there are changes in the patient’s situation but no new information is conveyed to the case manager, the previously accepted treatment plan could still be recorded as having been confirmed. The treatment facility can then proceed to prepare for the treatment that is supposed to be reviewed, while another coordinator can be trying to use the same available time for treatment.
+    The other party of interest is defense counsel who requires access to the disclosed documents. Other individuals that may be affected by the process are discovery team members who are tasked with document preparation, tracking of the documents' transmission, and incomplete transmission activities.
 
-    The ODR programs offered by Los Angeles County have programs that help individuals access treatment, housing, and community support. The ODR Housing program offered by Los Angeles offers case management to help individuals transition from custody into the community. This shows that coordination among the courts, case managers, and treatment organizations plays an important role within the current process.
-
-    In addition, the issue also influences the reliability of the computer systems. Information is stored by different firms in their own way, and one system may still be operational when another one is not. Therefore, at some point, the computer systems can have conflicting information regarding the referral, booking of an appointment, or the completion of a task.
-
-3. What evidence do you currently have that it is a real problem?
-    
-    The first piece of evidence I have chosen comes from the official proposal by the Los Angeles County District Attorney’s office on how the new case management system can be developed. It mentions that the County wants to replace several outdated applications with an up-to-date integrated cloud-based system which will be able to manage criminal cases and exchange information with other justice organizations. It is evidence of the need for modernization and integration. But it doesn’t show that these failures occurred at all.
+    The RFP of the county identifies the need for compliance with discovery requirements and coordination with defense counsel among other capabilities required of the new case management system.
 
     https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
 
-    Another significant source is the Legal Policies Manual of the Los Angeles County District Attorney. It mentions mental health diversion and specifies that those eligible will be treated with an alternative method based on certain legal criteria. The County’s Office of Diversion and Reentry has records of programs that involve treatment organizations, housing, and case management.
+    In this fictional example of the LADA-104 scenario, the prosecutor can notice that despite the recording of version 1 by the receiving service, it still remains unconfirmed. If later on, version 2 gets confirmed, the prosecutor would have to be able to differentiate the previous delivery attempt from the new one.
 
-    Technical documentation offers further information about the problems that may arise from the unreliability of distributed systems. According to PostgreSQL, database transactions can ensure that related operations are performed as a whole or not at all in case of failure in performing one operation. According to Transactional Outbox documentation by Microsoft, messages can be stored in case communication between services is not successful.
+    An incorrect acknowledgment entry might necessitate the manual comparison of the document versions, checking of communication logs or contacting the receiver. Such actions can make the process of verification more delayed and repetitive.
 
-    These references confirm the fact that inconsistency in databases, reliable message delivery, and recovery of tasks are technical issues. But personally, I haven’t experienced these kinds of breakdowns in Los Angeles County, or conducted interviews or experiments. My theory is that the amendments made to the mental health referral process, conflicting reservations, and temporary malfunctioning of services can cause inconsistency in information if several organizations work independently.
+    The issue concerns the reliability of the two software services that are part of the process. One of the services – case management service – stores the data on the disclosure requests and another – the receiving service – stores the data on the deliveries made. Being independent services, they can perform an operation even though the communication between them is interrupted.
+
+    The purpose is to give prosecutors the correct technical information on each of the disclosure attempts, and not to automate their legal decisions.
+
+3. What evidence do you currently have that it is a real problem?
+    
+    Source one is the RFP-DA-IT01 from the Los Angeles County District Attorney published on September 29, 2026. Section 2.2 states that LADA currently operates using an older Prosecutor Information Management System (PIMS) along with other software tools like eFolder, Electronic Charge Evaluation Request (eCER), Notes/Domino applications, SharePoint databases, and spreadsheet.
+
+    Some of the existing challenges listed by the county are inconsistencies in data entry and integration and the lack of discovery compliance. All these challenges have been stated to be real problems with the organization and not assumptions for my project.
+
+    Section 3.1 defines the need for a new system with the features related to discovery rules, automated workflow, document management and audit, while section 9 defines the need for discovery management and compliance tracking.
+
+    https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
+
+    The next source provides the official documentation on transactions in PostgreSQL. It enables several database operations to be grouped into a single unit, and in the event that the transaction fails, its changes may be undone. The importance of this source is that there should not be any partial recordings of disclosures, delivery statuses, and audit activities in a single database.
+
+    Unfortunately, a transaction in the case management database will not ensure the recording of the document in the separate receiving service database.
+
+    https://www.postgresql.org/docs/current/tutorial-transactions.html
+
+    The third source refers to the documentation from Microsoft regarding the Transactional Outbox pattern. In such a case, the problem of reliable communication between systems is solved by putting the outgoing messages in a local transaction with database changes. Another process delivers these messages, making it possible to recover from an incomplete communication.
+
+    Another important fact provided by Microsoft is that messages can be delivered multiple times, and services need to deal with this. This gives technical proof for the importance of communication reliability and message duplicates.
+
+    Another technical proof is provided by Camunda 8 documentation regarding job workers. Camunda enables retries for unfinished tasks and continuation of work after worker unavailability. Camunda's documentation also states that tasks may run several times which makes the application tolerate repetitions of operations.
+
+    https://docs.camunda.io/docs/components/concepts/job-workers/
+
+    While these sources confirm the technical threats mentioned above, I was unable to check that LADA had experienced such a problem with lost acknowledgment or an outdated version as mentioned in my example. I did not interview the employees of the county nor analyze the disclosure logs nor measure the system.
+
+    I assume that delayed acknowledgments and changing the version of the document lead to inaccurate receipts if independently functioning services do not validate the initial request and document version.
+
+    This evidence provides proof of the actual organizational need and risk of distributed systems. In order to find out if my approach improves the chosen workflow, experiments will have to be done.
 
 4. What solutions already exist?
+    There exist a number of technologies for each of the areas of reliable communication, data consistency, and workflow recovery. I will discuss the comparison between PostgreSQL transactions, Microsoft's Transactional Outbox, and Camunda 8.
 
-    Various technologies already developed can help solve various aspects of this challenge. The following three solutions include Camunda 8, the Transactional Outbox Pattern developed by Microsoft, and PostgreSQL database transactions. These solutions have their reliability features; however, they cover different coordination aspects.
+    The PostgreSQL database transactions ensure the consistency of database operations inside one database. For instance, a transaction can create a disclosure request, save the document version after approval, and keep the corresponding audit event. In case of error during transaction execution, all operations can be undone.
 
-    First, there is Camunda 8, a workflow management system which helps to coordinate activities of the services. For instance, in the referral workflow, one may create a referral, ask for an appointment, get confirmation, and mark it as complete. Camunda is able to monitor the workflow status and allow the task to be retried by a different worker when the previous one fails. The primary advantage of using Camunda is coordination of processes that consist of several stages and several independent services. The disadvantage is that retry does not guarantee that the referral remains valid.
+    The main benefit is that the database changes are safeguarded against incomplete transactions. The disadvantage is that the transaction itself cannot synchronize two services. The successful saving into database doesn't guarantee that the service of the receiving defense counsel saved the document.
 
-    Another pattern is that of Transactional Outbox by Microsoft. In this method, the change made to the database and the corresponding outgoing event are bundled together within the same transaction. Then another service receives the event through another process. In case the transmission is unsuccessful, the event is kept pending until the transmission is made at a later point in time. This would be helpful in the scenario where there is a need to refer a patient to another organization. However, keeping the message pending does not necessarily mean the information is up-to-date.
+    https://www.postgresql.org/docs/current/tutorial-transactions.html
 
-    The third technique is that of using database transactions in the PostgreSQL database. This technique involves carrying out multiple database operations as one whole operation. For instance, using the database transaction along with the right constraints, a treatment provider can avoid conflicting appointment bookings in its database. The database rolls back any changes if an operation fails to commit. However, database transactions cannot synchronize appointment bookings between different organizations.
+    The second approach is the Transactional Outbox pattern from Microsoft. The principle of this pattern involves storing outgoing events together with the business data. Later, a background job sends such events to some other service. In case of unavailability of communication, the messages can be delivered subsequently.
 
-    The research approach I propose is Adaptive Referral State Reconciliation (ARSR). Rather than developing yet another referral management application, I would like to explore a coordination protocol that analyzes the current state of referrals, status of appointment reservations and operations that have already been performed to find out what needs to be done in case of failure. The contribution of such an approach is in combining all three decisions into one process of recovery.
+    Such an approach can help keep the request for approval until the availability of the service responsible for delivering it. The positive thing about it is that there is no risk of loss of the outgoing request after a successful operation in the database.
+
+    Nevertheless, this pattern ensures at-least-once delivery, but not exactly-once delivery. So, it is possible to have duplicate messages, which need to be considered. Moreover, the reliable delivery of an acknowledgement of version 1 doesn’t mean the delivery of version 2.
+
+    https://learn.microsoft.com/en-us/power-platform/architecture/reference-architectures/transactional-outbox-pattern
+
+    Thirdly, Camunda 8 represents a workflow orchestration solution, which allows orchestrating operations, which are performed by different services. Workers in Camunda can complete tasks, detect errors, and retry incomplete operations. The solution allows persisting workflow state even when a worker becomes unavailable.
+
+    For a disclosure of discovery workflow, Camunda may orchestrate communication, acknowledgments, and retries. The solution is good at managing workflows with multiple steps and restarting tasks in case of interruption.
+
+    Nevertheless, the solution itself cannot automatically detect if a late acknowledgment concerns a certain approved version of the document. Also, the documentation for Camunda mentions the necessity of implementing idempotent workers, which means that re-execution of a certain task should not result in undesired behavior.
+
+    https://docs.camunda.io/docs/components/concepts/job-workers/
+
+    As part of my proposed Resilient Discovery Receipt Tracking System, I will conduct research on a specific recovery model which consists of five components.
+
+    First, document version validation will tie the disclosure request to a correct document version that was approved. Secondly, the reliable delivery component will store requests during temporary communications failures. Third, the failure recovery component will analyze past delivery results and detect repeated requests prior to retransmission.
+
+    Fourth, deadline management will notify authorized users about unconfirmed disclosure near a manually entered deadline. Fifth, the audit history component will track document versions, delivery attempts, acknowledgements, and recovery operations.
+
+    All of these components are not individual new technologies. What my contribution will be is the combined use of these technologies to maintain the history of accurate version specific discovery receipts under controlled failure conditions.
+
+    My goal is to find out whether adding version awareness to reliable delivery technology will result in any benefits. Until experimental evaluation is conducted, this will remain a proposed solution.  
+
 
 5. What is the most important thing you still do not know?
+    The most significant challenge is determining whether the version-aware acknowledgment reconciliation process will be able to handle discovery receipt statuses better than the traditional durable delivery and retry process when the acknowledgments are delayed or lost.
 
-    The biggest question that still remains for me is whether one coordination approach is enough to ensure that the information on referral and appointments remains accurate in cases where several changes take place almost simultaneously through independent service. For instance, I am unsure about how often an old confirmation of referral might clash with a new treatment schedule and also how the service should be restarted.
+    There are systems which can help in storing outgoing requests and retrying operations if there is a failure. However, what needs to be determined is the way the system should function if a previous version of the document has been received, its acknowledgment delayed and the latest one approved.
 
-    I would also like to see if there will be any benefit from verifying the current states of the referral and reservations before trying to perform an action compared to using a normal durable workflow. Even though there exist technologies that support transactionality, retrials, and message durability, I have not seen any benefit of my coordination principles yet.
+    For instance, if version 1 has been successfully received before version 2 has been approved, then it will be crucial for the system to keep the historical data on version 1 without considering it as the receipt for version 2.
 
-    In order to respond to this question, I could create a small simulation that includes District Attorney case service, mental health coordination service, and treatment provider service. Based on made-up data, I would simulate three scenarios, such as referral change after acceptance, two appointment requests at once, and provider service failure while processing.
+    In order to test this, I will develop a prototype which will include the case disclosure service and the defense receiving service. Both the services will maintain their own logs independently but will interact using API.
 
-    I will compare a basic workflow using persistent tasks and retry with my suggested state-aware coordination system. Both the workflows will be subjected to the same simulation failures. I will measure stale confirmations, conflicting reservations, double actions, referrals not resolved, and recovery time. This data will assist me in determining if my suggested system is better or unnecessarily complex.
+    There will be two types of implementation; one will be the normal process and the second will have version-aware acknowledgment verification and reconciliation before completion of receipt statuses.
 
-    If there are few mistakes in confirmation and fewer reservation conflicts based on the results, I could explore the process further. In case there is no difference in results, then I will revise its coordination rules. However, I do acknowledge that the simulated system may not reflect all challenges faced by the organizations in reality.
+    Both systems will work on the same fictitious documents under controlled circumstances. The test will simulate a lost acknowledgment, multiple retransmission requests, service interruption, and a delayed acknowledgment from an older version of a document.
+
+    Some of the most significant variables will be errors in updating receipt status, unnecessary retransmissions, unresolved retransmissions requests, and recovery time. In addition, I will investigate the additional processing required due to version validation.
+
+    It can be hypothesized that version-based reconciliation will minimize errors in updating receipt status when acknowledgments about different document versions arrive in wrong sequence.
+
+    Nevertheless, one of the limitations will be whether the receiver is able to request any previous retransmission requests using some unique identifier. If this data is unavailable, the system will have to keep unresolved retransmission request and not be able to confirm delivery automatically.
+
+    The experiment will show if the suggested approach is reliable enough or adds unnecessary complexity.
+
 
 6. Your Individual Scope
-    The scope of my individual project is going to be ARSR in B05 – Resilient Case Management Services.
 
-    My individual mechanism is going to study three interrelated functionalities. First, it is going to discover referrals that should be revalidated in case some important conditions have changed. Second, it is going to coordinate virtual treatment appointments to avoid conflicting confirmed appointments. Third, it is going to restore unfinished referral tasks in case of a crash of the provider's service while verifying that it is still valid.
+    The particular discovery disclosure workflow that my individual project will examine is one workflow based on the discovery-compliance standards of the Los Angeles County District Attorney.
 
-    I plan to use Python, FastAPI, PostgreSQL, as well as separately running services that are going to simulate the network, as well as its failures. The data that is going to be used is not going to contain any actual cases, appointments, criminal activity, or medical data.
+    The scope will include one fictional criminal case, one approved discovery document with its replacements, one service for delivering it to the defense, and one version-aware acknowledgment recovery procedure.
 
-    The objective of the research is to create and test a coordination mechanism that would ensure accurate exchange of information among the services at all times in changing situations and in case of failures. The project is doable for one person since the focus is set on three simulated services, referral process, and experimentation.
+    Python with FastAPI will be used for the independent services, PostgreSQL for persistent records, and Docker Compose for running the services and simulating interruptions. One small React dashboard may present document versions, delivery statuses, acknowledgments, deadlines, and audit logs. The database will be queried using direct SQL queries.
 
-    The desired result will be a tested prototype and the comparative analysis to show whether ARSR offers any advantages in the given situation. I will consider it a proposed solution until the results prove its effectiveness.
+    All five features will be implemented in this single disclosure workflow only. A full-blown criminal case management system, evidence analysis, decision-making about discovery requests, real connections with the court, and the actual delivery of sensitive criminal records will not be implemented. All the records and documents will be fictional.
+
+    The primary comparison will be made between a standard reliable delivery and a reliable delivery enhanced with document version verification and acknowledgment reconciliation.
+
+    The expected outcome would be a fully functional prototype of a distributed system and tests that would show how the data on receipts evolves under the conditions of disruptions, repetitions, and document updates.
+
+    This research is manageable for a single student since the implementation will be restricted to only two main services, one discovery workflow, few database tables, and experimentation. Five additional features give the technical depth while not needing other criminal justice workflows.
+
+    I want to find out if version aware acknowledgment recovery can increase the accuracy and reliability of the discovery receipts tracking process.
