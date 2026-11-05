@@ -73,7 +73,8 @@ Kapil Tamang
     This evidence provides proof of the actual organizational need and risk of distributed systems. In order to find out if my approach improves the chosen workflow, experiments will have to be done.
 
 4. What solutions already exist?
-    There exist a number of technologies for each of the areas of reliable communication, data consistency, and workflow recovery. I will discuss the comparison between PostgreSQL transactions, Microsoft's Transactional Outbox, and Camunda 8.
+
+   There exist a number of technologies for each of the areas of reliable communication, data consistency, and workflow recovery. I will discuss the comparison between PostgreSQL transactions, Microsoft's Transactional Outbox, and Camunda 8.
 
     The PostgreSQL database transactions ensure the consistency of database operations inside one database. For instance, a transaction can create a disclosure request, save the document version after approval, and keep the corresponding audit event. In case of error during transaction execution, all operations can be undone.
 
@@ -108,7 +109,7 @@ Kapil Tamang
     My goal is to find out whether adding version awareness to reliable delivery technology will result in any benefits. Until experimental evaluation is conducted, this will remain a proposed solution.  
 
 
-5. What is the most important thing you still do not know?
+6. What is the most important thing you still do not know?
     The most significant challenge is determining whether the version-aware acknowledgment reconciliation process will be able to handle discovery receipt statuses better than the traditional durable delivery and retry process when the acknowledgments are delayed or lost.
 
     There are systems which can help in storing outgoing requests and retrying operations if there is a failure. However, what needs to be determined is the way the system should function if a previous version of the document has been received, its acknowledgment delayed and the latest one approved.
@@ -130,7 +131,7 @@ Kapil Tamang
     The experiment will show if the suggested approach is reliable enough or adds unnecessary complexity.
 
 
-6. Your Individual Scope
+7. Your Individual Scope
 
     The particular discovery disclosure workflow that my individual project will examine is one workflow based on the discovery-compliance standards of the Los Angeles County District Attorney.
 
