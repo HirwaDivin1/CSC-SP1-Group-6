@@ -110,7 +110,8 @@ Kapil Tamang
 
 
 6. What is the most important thing you still do not know?
-    The most significant challenge is determining whether the version-aware acknowledgment reconciliation process will be able to handle discovery receipt statuses better than the traditional durable delivery and retry process when the acknowledgments are delayed or lost.
+
+   The most significant challenge is determining whether the version-aware acknowledgment reconciliation process will be able to handle discovery receipt statuses better than the traditional durable delivery and retry process when the acknowledgments are delayed or lost.
 
     There are systems which can help in storing outgoing requests and retrying operations if there is a failure. However, what needs to be determined is the way the system should function if a previous version of the document has been received, its acknowledgment delayed and the latest one approved.
 
@@ -131,7 +132,7 @@ Kapil Tamang
     The experiment will show if the suggested approach is reliable enough or adds unnecessary complexity.
 
 
-7. Your Individual Scope
+8. Your Individual Scope
 
     The particular discovery disclosure workflow that my individual project will examine is one workflow based on the discovery-compliance standards of the Los Angeles County District Attorney.
 
