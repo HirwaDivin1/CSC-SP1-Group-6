@@ -36,54 +36,54 @@
 
 *   Concrete Scenario: One Prosecutor, One Document, One Failure
 
-    Consider a fabricated case related to a criminal where the case number is LADA-DEMO-104. A prosecutor who has a hearing scheduled asks for the document DOC-104-01 with version 2 in PDF form. In the current student model, Storage Node A is responsible for supplying this document while Storage Node B should have a copy as a replica. A separate service called Document Access Service receives this request. The metadata database contains the document ID, version number, and location where the document is expected to be available.
+    Let us consider an artificially constructed example that deals with a particular criminal, and the case number is LADA-DEMO-104. A prosecutor having hearings scheduled requests the document with the ID DOC-104-01, version 2, in PDF format. According to the current student model, Storage Node A is supposed to provide this document whereas Storage Node B is supposed to have the replica of this document. There is a special service called Document Access Service that receives this request. Metadata DB stores the ID, the version number of the document, and its location.
 
-    Under usual circumstances, the prosecutor asks for the version 2 of the document and the access service authenticates the simulated test identity, accesses the metadata, retrieves the file from Node A, verifies the document version and checksum, and supplies the file back to the requester. Time period from the moment when the access service received the request until the file is sent back will serve as retrieval latency.
+    In case of normal circumstances, the prosecutor is requesting the version 2 of the document, the access service verifies the simulated test identity, accesses the metadata, retrieves the file from Node A, checks the document version and checksum, and then sends back the file to the requester. The time period between receiving the request by the access service and sending the file back will be used for calculating the retrieval latency.
 
-    Now assume that Node A becomes unresponsive whereas the access service is still functioning. Once the access service times out or notices the failure, it tries to fetch version 2 from Node B. If Node B has the entire version 2 which is validated, the prosecutor receives the file along with the additional delay from detection and failover.
+    In this situation, we assume that Node A goes down while access service is working properly. When access service timeout occurs and the failure is detected, it attempts to retrieve version 2 from Node B. In case Node B contains the complete version 2 that is valid, the prosecutor gets the file plus the delay associated with detecting and failing over.
 
-    If Node B has only version 1, then the system shall not return the file as version 2 without giving a proper explanation that the required version is not available. The copied file will be of any use only if its version meets the requirements.
+    In case node B only has version 1, then the system should not give back the file as version 2 without explaining why it is unable to provide the requested version. The copied file will have no use if it does not satisfy the version requirements.
 
-    This is an example of a test case and not an actual failure of the LADA. The scenario is purposely kept simple enough to replicate with the fictional entries.
+    This is an example of a test case and not the actual failure of LADA. This scenario is deliberately made simple enough to repeat using the fictitious entries.
 
 
 *   Where the Documents Will Be Stored in the Prototype
 
-    In the case of the proposed prototype, PDFs and document metadata will not be stored in the same location. Storage Nodes A and Storage Node B will each store separate copies of the PDFs, whereas a PostgreSQL database will store the document metadata.
+    In the case of the proposed prototype, the PDFs and document metadata will not be stored in the same place. Storage Nodes A and Storage Node B will store copies of the PDFs separately while the metadata of the documents will be stored in a PostgreSQL database.
 
-    Document metadata will include a reference to the document, version number, expected checksum, and the storage nodes which have copies of the documents. Using this information, the access service will determine the storage node to use and initiate file transfer via a network connection.
+    The document metadata will contain the following information: a reference to the document, version number, expected checksum, and storage nodes holding copies of the documents. With the help of this information, the access service will be able to determine the storage node and start file transfer via the network connection.
 
-    Thus, for instance, if the prosecutor requires DOC-104-01, the access service will first use the metadata database to determine the document, then contact the appropriate storage node and request and get the PDF. It is important to note that accessing the metadata entry is different from transferring the document since the former will contain data about the latter.
+    For example, in case the prosecutor needs DOC-104-01, the access service will first check the metadata database for the document, then connect to the right storage node and ask for and receive the PDF. It should be noted that there is a difference between accessing the metadata entry and transferring the document as the former will contain information about the latter.
 
-    Node A and Node B will act as two separate services of storage. In the local simulation process, they may be executed as separate processes or containers on the same computer with separate directories for storing files persistently. The configuration may be taken as a failure of service or disruption in connection; however, it cannot be considered proof of the system's robustness against loss of complete laptop or building.
+    Node A and Node B would function as two distinct storage services. When it comes to the local simulation procedure, they can be run separately as processes or containers on the same computer having different directories for persistent file storage. The configuration may be treated as either failure of service or loss of connection; however, it cannot be seen as evidence of the system resilience in case of loss of the entire laptop or even building.
 
-    The reason for this configuration is to examine the effects of document placement, network interaction, file transfer, and service failures on the document accessibility.
+    The main idea behind this configuration was to study the impact of the mentioned factors on document availability.
 
     This is a proposed student design and not the existing infrastructure of LADA.
 
 *   Performance and Failure Questions to Investigate
 
-    One aspect of measuring is how fast the retrieval process is from the various storage nodes. Retrieval time is measured by the time difference between when the Document Access Service receives a request until the complete document is received.
+    Another element of measurement is the speed of retrieving data from all the different nodes in storage. Retrieval time is determined by the time taken between the time the Document Access Service receives the request and the time the entire document is received.
 
-    As part of a future controlled experiment, I am going to use synthetic documents that have 1 MB, 10 MB, and 50 MB in size. The above values represent test inputs and not measurements of county case files. In each test, I will measure the time required to retrieve the whole document from Node A in normal circumstances and from Node B when Node A fails. In addition, I will check whether the retrieved document is the correct one and whether the request is successful.
+    For an experiment in the future, I will be using some synthetic documents that will have sizes of 1 MB, 10 MB, and 50 MB. These numbers above are the inputs for testing and not the actual sizes of the county case files. In all the tests, I will be timing the time needed to retrieve the entire document from node A normally and node B in case node A fails. Also, I will be determining whether the right document has been retrieved successfully.
 
-    Replication delay is another important measure. Replication delay is defined as the time difference between storing version 2 of the document on Node A until a complete and verified version 2 on Node B becomes available. A large replication delay makes it more likely that the failover will retrieve an older version.
+    Replication delay is yet another crucial parameter to take into account. The definition of replication delay is the period of time from the moment when version 2 of the document is saved at Node A until a complete and checked version 2 at Node B is achieved. The big replication delay is very probable to cause failover to obtain the old version.
 
-    In addition, I would like to see how a service can identify an unreachable node. Although a smaller timeout would enable quicker switching to another storage node, it could misinterpret slow response times as a failure. Conversely, a larger timeout would minimize unnecessary failover attempts while causing the user to wait for too long before the switch.
+    Moreover, I would also like to know how a service will recognize that the node is no longer reachable. While a small timeout value will allow faster changing to another storage node, it might mistake slow response as failure, and vice versa – a bigger timeout will avoid unnecessary failover, but the user will wait too much for switching.
 
-    Tests must be carried out before I make claims regarding milliseconds. The comparison will be made using the same files and conditions under which there will be one node versus two nodes.
+    However, tests should be conducted prior to any conclusions being made about milliseconds. Comparison will be done on the same files and under the same conditions where one node will be compared with two nodes.
 
 *   Evidence, Assumptions, and Unknowns
 
-    The most compelling evidence from a documentation standpoint would be from the official RFP from LADA. This document describes multiple aging applications, fragmented support systems, lack of integration, and the need for a new, cloud-based case management system. The section on purpose also describes performance, operational requirements, and disaster recovery as issues.
+    The strongest documentation evidence would come from the RFP from LADA itself. This document explains that there are multiple aging applications, lack of integration and need of a new cloud-based case management system due to fragmented support systems. The purpose section also indicates performance, operational requirements, and disaster recovery as the problems.
 
-    This evidence shows the need to study the availability of documents in a case-management setting. It is not clear from this evidence whether LADA is experiencing the types of failure mentioned in my scenario with its document server.
+    Such an evidence indicates that it is important to analyze the availability of documents in case management environment. It is not quite clear from the provided evidence whether LADA is experiencing the kinds of problems in the scenario presented with their document server.
 
-    For the student model, I will assume that a document can be transferred between two storage services; one storage service may fail but the other one remains operational; version information about the document can be obtained; and a checksum is useful in validating the document contents.
+    Assuming a student model where the document may be transferred between two storage services; one storage service fails but the other one works; version information about the document is available; and finally a checksum is helpful for validation of the document contents.
 
-    Unknowns in this case involve LADA's true location of the documents, server configuration, network latency, access time, replication strategy, and outage rate. My simulation will be used to verify the behavior of itself rather than the outage rate of the actual county systems.
+    Unknowns for this problem include LADA's real location for the documents, the server configuration, network latency, access time, method of replication, and rate of outages. I'll use the simulation to test the correctness of itself as opposed to the rate of outages of the actual county systems.
 
-    Using these assumptions and unknowns, I will guide future stages of my research and implementation process without stating any hypotheses as facts.
+    From these assumptions and unknowns, I will plan the rest of my research and implementation without forming any hypotheses into statements of fact.
 
 *   Stakeholders and Their Needs
     
@@ -96,29 +96,29 @@
     | LADA as an organization | Coordinate case information across applications | Reliable, integrated access to case materials |
 
 *   Workflow and Context Image
+    
+    Simulation of the model of document access for distributed documents of the student. The access service receives the identifier of the document and its version and accesses the document either in the primary storage node or in the replica, if the primary storage node is not available. This scheme illustrates my system, not the infrastructure of the LADA at the present moment.
 
-    Simulation of the student's model of distributed document access. Access service gets document identifier and version information and accesses the file either in the primary storage node or the replica, if the primary storage node is unavailable. The above scheme describes my system, not LADA's current infrastructure.
+    The scheme above demonstrates the difference between the requesting user, the service that finds the documents, the metadata base, and two separate storage services.
 
-    The above scheme shows the distinction between the requesting user, the service that locates the documents, the metadata base, and two separate storage services.
+    Moreover, the scheme above illustrates the critical error situation. In case of unavailability of the primary storage node, the system can access the document from some other node. However, the replica can become the appropriate node only in case when it possesses the corresponding version of the document and passes the integrity check of the file.  
 
-    Also, the above scheme depicts the critical error condition. In case of unavailability of the primary storage node, the system may try to access the document from another node. However, the replica will be an acceptable node only in the case if it contains the required version of the file and passes the file integrity check.
-
-    This process describes the interaction of different elements through the network to get access to the document.
+    This process is the interaction of various components via the network in order to gain access to the document.
 
 
 *   My Small Semester I Contribution
     
-    In the first semester, my contribution will be the design and specification of a failure-aware document retrieval function.
+    My contribution during the first semester will be to design and specify a failure aware document retrieval function.
 
-    I will outline one document request that includes a document ID and version required, one case of successful retrieval where node A is responding and one case of failed retrieval where node A is not responding and node B may or may not have the required version.
+    In this case, I will list one document request specifying the document ID and version required, one case where the document request is successful with Node A replying and another case where the document request is unsuccessful because node A does not reply but node B might have the requested version.
 
-    I will describe the output that the user should get in each case and also discuss ways that can be used to measure retrieval time and version correctness.
+    In addition to describing the output the user is expected to receive in each case, I will explore some methods that can be employed to measure the retrieval time and version correctness.
 
-    The scope will include one authorized user, some fictional PDF documents, one Document Access Service, one metadata database and two separate storage services.
+    Scope will involve one authorized user, fictional PDF documents, Document Access Service, metadata database and two storage services.
 
-    This contribution is more limited in scope compared to the development of a full document management system. It will help in investigating one realizable feature: obtaining the correct document version from an available node or informing that the requested version is not available.
+    This contribution is less ambitious in scope than designing a whole document management system. This will aid the investigation of one realistic feature namely retrieving the right version of the document.
 
-    For this semester, I need to define the problem statement, define the behavior required, determine the technical questions and the plan for evaluation. The development of a prototype would be carried out in case there is enough time; however, the first assignment does not demand that I have a working system.
+    In this case, in the present semester, I need to identify the problem statement, specify the desired behavior, determine technical questions and evaluation plan. The prototype development will be done if time permits but the first assignment does not require me to have any system developed yet.
 
 
 
