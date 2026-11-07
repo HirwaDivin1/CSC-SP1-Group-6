@@ -21,6 +21,8 @@
 
     When data and associated details reside across various systems, it is vital to have knowledge of the storage location of the file requested and its retrieval process. The RFP does not provide me with the physical location of each file, the number of servers, transfer rate, replication process, and storage behavior when a failure occurs. I will assume that these are all unknown to me.
 
+    https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
+
 *   The Specific Distributed-Systems Problem
 
     The distributed system is implemented using separate programs or machines, which send messages through the network. For example, the document-access service can process the request from the user, the metadata service can keep information about the document version and possible locations, and the storage service can store the file itself. All three services operate independently and can crash independently.
@@ -151,58 +153,116 @@
 
 2. Requirements and Success Criteria
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will define formal requirements and measurable acceptance criteria for document retrieval, availability, version correctness, and response time.
+    This section will define formal requirements and measurable acceptance criteria for document retrieval, availability, version correctness, and response time.
 
 3. Existing Approaches and Comparison
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will compare a basic single-node storage approach with a two-node replicated approach to examine the differences in availability, performance, and reliability.
+    This section will compare a basic single-node storage approach with a two-node replicated approach to examine the differences in availability, performance, and reliability.
 
 4. System Architecture
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will describe the placement of the Document Access Service, metadata database, storage nodes, and communication interfaces in greater detail.
+    This section will describe the placement of the Document Access Service, metadata database, storage nodes, and communication interfaces in greater detail.
 
 5. Component Responsibilities
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will explain the responsibilities of individual services and describe how they communicate during document requests and storage failures.
+    This section will explain the responsibilities of individual services and describe how they communicate during document requests and storage failures.
 
 6. Data Structures and Persistent Storage
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will define document identifiers, version records, storage locations, checksums, and persistent metadata structures.
+    This section will define document identifiers, version records, storage locations, checksums, and persistent metadata structures.
 
 7. Algorithms and Pseudocode
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will describe the document retrieval process, storage-node failure detection, replica selection, and version verification.
+    This section will describe the document retrieval process, storage-node failure detection, replica selection, and version verification.
 
 8. Implementation Plan
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will explain the proposed software technologies, development environment, implementation steps, and milestones.
+    This section will explain the proposed software technologies, development environment, implementation steps, and milestones.
 
 9. Testing and Evaluation
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will define formal testing procedures for retrieval latency, network delays, storage-node failures, replication delays, and document-version correctness.
+    This section will define formal testing procedures for retrieval latency, network delays, storage-node failures, replication delays, and document-version correctness.
 
 10. Risks, Limitations, and Security
 
-Work to come in a later assignment.
+    Work to come in a later assignment.
 
-This section will discuss authorization, document integrity, confidentiality, system availability, and the limitations of the local simulation.
+    This section will discuss authorization, document integrity, confidentiality, system availability, and the limitations of the local simulation.
 
 11. Progress Note and Open Question
 
-Progress Note – November 6, 2026
+    Progress Note – November 6, 2026
+
+    For Assignment 1, I read Chapters 1-4 of the course handbook and studied the Los Angeles County District Attorney's Office RFP-DA-IT01. This RFP enabled me to establish a problem documented in terms of a fragmented legacy case management application and a lack of integration between these systems.
+
+    Originally, I was contemplating pursuing a more general case management project, but I decided to concentrate on a single specific distributed systems problem of obtaining a right document from the primary storage system.
+
+    My main stakeholders were prosecutors and authorized case support staff, and I created a fictional scenario about obtaining a document by a prosecutor with a storage node failure.
+
+    I additionally proposed an architecture that includes a Document Access Service, metadata database, and two separate storage nodes. The first workflow shows how documents can be found and retrieved under normal conditions as well as how retrieval can be attempted from a different node in case the main node fails.
+
+    I defined the personal contributions for Semester I, the implementation goal for Semester II, and the project exclusions.
+
+    So far, I have performed the initial problem investigation and set the project boundaries. I have not implemented the system and measured its performance.  
+
+    Open Problem
+
+    In a scenario where Storage Node A is down, what mechanism would allow the Document Access Service to ascertain that Storage Node B actually holds the most recent version of a case document and not an old replica?
+
+    This issue is significant in light of the fact that storing multiple versions of the document can enhance availability, but the documents may not have identical versions.
+
+    For example, if Node A crashes before replication occurs, Node B may actually hold an old version of the document. Using this version to provide the document will yield an erroneous answer.
+
+    What I have to do is learn more about document versioning, integrity checking, and replica selection.
+
+12. Sources and Existing Approaches
+
+    Source 1: Los Angeles County District Attorney's Office
+
+    Title: Request for Proposals RFP-DA-IT01 – Case Management System Solution
+
+    Publication Date: September 29, 2026
+
+    Relevant Sections: 2.1, 2.2, and 3.0
+
+    Link: https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
+
+    This is the primary source for the real-world problem. The RFP describes LADA's legacy case management environment, supporting applications such as PIMS and eFolder, fragmented information systems, and integration difficulties.
+
+    It also establishes the county's interest in implementing a modern, cloud-based case management system and identifies performance, integration, and disaster recovery as important concerns.
+
+    The RFP provides evidence of the organizational need but does not directly establish the storage-node failure described in my hypothetical scenario.
+
+    Source 2: PostgreSQL Documentation
+
+    Topic: High Availability, Load Balancing, and Replication
+
+    Link: https://www.postgresql.org/docs/current/high-availability.html
+
+    The documentation outlines the current methods for database replication and high availability. It provides some insight into how persistent information can be duplicated between systems and the role of standby systems in recovery.
+
+    Database replication using PostgreSQL is distinct from PDF replication. My proposed prototype will use PostgreSQL for document metadata while exploring PDF replication.
+
+    Source 3: Course Handbook
+
+    Name of source: Chapters 1-4 – Distributed Systems & Software Design Fundamentals
+
+    Source: Class materials provided by the professor.
+
+    These chapters cover communicating processes, client/server systems, persistence of data, partial failures, software design, Markdown for documentation, evidence labels, and narrowing down the scope of a student project.
