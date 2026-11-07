@@ -1,4 +1,9 @@
-
+**Student:** Kapil Tamang  
+**Project:** B05 – Resilient Case Management Services  
+**Assignment:** 1 – Problem and Markdown Foundation  
+**Date:** November 6, 2026  
+**Real-world setting:** Los Angeles County District Attorney's Office (LADA)  
+**Document status:** Initial problem and scope draft
 
 1. Problem and Scope
 
@@ -96,8 +101,6 @@
     Also, the above scheme depicts the critical error condition. In case of unavailability of the primary storage node, the system may try to access the document from another node. However, the replica will be an acceptable node only in the case if it contains the required version of the file and passes the file integrity check.
 
     This process describes the interaction of different elements through the network to get access to the document.
-
-
 
 
 *   My Small Semester I Contribution
