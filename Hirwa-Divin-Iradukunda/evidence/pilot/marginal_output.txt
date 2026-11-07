@@ -1,0 +1,12 @@
+ALL events 1043772 nodes 33 sources 10954
+ 5/10m: attempts reaching sshd with local-ban only 350950 (33.6% of all); detected sources 4399, on 2+ nodes 3354; reduction by sharing vs local-only, by delay: 0s:20.9% 10s:20.9% 60s:20.9% 300s:20.9% 3600s:20.6%; (share of all attempts at 0s 7.0%)
+ 30/30m: attempts reaching sshd with local-ban only 692574 (66.4% of all); detected sources 351, on 2+ nodes 264; reduction by sharing vs local-only, by delay: 0s:1.8% 10s:1.8% 60s:1.8% 300s:1.8% 3600s:1.7%; (share of all attempts at 0s 1.2%)
+ 5/1h: attempts reaching sshd with local-ban only 90885 (8.7% of all); detected sources 6316, on 2+ nodes 4439; reduction by sharing vs local-only, by delay: 0s:37.7% 10s:37.6% 60s:37.6% 300s:37.4% 3600s:36.7%; (share of all attempts at 0s 3.3%)
+ 10/24h: attempts reaching sshd with local-ban only 124471 (11.9% of all); detected sources 6213, on 2+ nodes 4379; reduction by sharing vs local-only, by delay: 0s:33.6% 10s:33.5% 60s:33.5% 300s:33.4% 3600s:32.7%; (share of all attempts at 0s 4.0%)
+ 30/24h: attempts reaching sshd with local-ban only 293500 (28.1% of all); detected sources 5009, on 2+ nodes 3690; reduction by sharing vs local-only, by delay: 0s:27.7% 10s:27.7% 60s:27.7% 300s:27.6% 3600s:27.3%; (share of all attempts at 0s 7.8%)
+EXCL POOL events 121055 nodes 5 sources 2980
+ 5/10m: attempts reaching sshd with local-ban only 59615 (49.2% of all); detected sources 964, on 2+ nodes 329; reduction by sharing vs local-only, by delay: 0s:5.1% 10s:5.1% 60s:5.1% 300s:5.0% 3600s:4.9%; (share of all attempts at 0s 2.5%)
+ 30/30m: attempts reaching sshd with local-ban only 106871 (88.3% of all); detected sources 62, on 2+ nodes 18; reduction by sharing vs local-only, by delay: 0s:0.4% 10s:0.4% 60s:0.3% 300s:0.3% 3600s:0.3%; (share of all attempts at 0s 0.4%)
+ 5/1h: attempts reaching sshd with local-ban only 18464 (15.3% of all); detected sources 1440, on 2+ nodes 393; reduction by sharing vs local-only, by delay: 0s:11.6% 10s:11.5% 60s:11.5% 300s:11.4% 3600s:11.3%; (share of all attempts at 0s 1.8%)
+ 10/24h: attempts reaching sshd with local-ban only 21960 (18.1% of all); detected sources 1396, on 2+ nodes 386; reduction by sharing vs local-only, by delay: 0s:12.2% 10s:12.1% 60s:11.9% 300s:11.8% 3600s:11.6%; (share of all attempts at 0s 2.2%)
+ 30/24h: attempts reaching sshd with local-ban only 50378 (41.6% of all); detected sources 1080, on 2+ nodes 287; reduction by sharing vs local-only, by delay: 0s:7.0% 10s:6.9% 60s:6.8% 300s:6.8% 3600s:6.7%; (share of all attempts at 0s 2.9%)
