@@ -78,12 +78,11 @@ In Semester II, I plan to implement the retrieval service and two storage nodes,
 
 ### Exclusions
 
-- Real criminal case files, sensitive personal data, and access to LADA production systems.
-- Integration with courts, police databases, and government cloud infrastructure.
-- Legal decisions, charging, victim notifications, or a complete evidence-management platform.
-- Building an enterprise CMS or claiming production-level security certification.
-- Guarantees of availability if both storage nodes, the shared metadata store, or the host machine fail.
-- Large-scale datacenter deployment during the initial student project.
+- The project will focus on document storage, retrieval, replication, and failure recovery rather than developing a complete case management system.
+- The initial prototype will use simulated criminal case documents instead of confidential records.
+- Direct integration with external court systems, police databases, and other government agencies is outside the initial scope.
+- Legal decision-making, case prosecution workflows, and other administrative functions will not be implemented.
+- Large-scale deployment and advanced disaster recovery will be considered future extensions rather than part of the initial prototype.
 
 ## 2. Requirements and System Specification
 
