@@ -57,7 +57,6 @@ This student test scenario illustrates a partial failure: one service stops work
 
 ### Workflow Image
 
-![A prosecutor requests a case document from the Document Access Service, which checks metadata and retrieves the required version from primary Storage Node A or verified replica Storage Node B after a failure.](assets/document-access-architecture.png)
 
 *Figure 1. Proposed distributed document access workflow. The access service uses metadata to locate the file, retrieves it from Node A during normal operation, and attempts verified retrieval from Node B when Node A is unavailable. This diagram shows the proposed student prototype.*
 
