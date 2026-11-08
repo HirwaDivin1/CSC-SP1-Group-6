@@ -3,11 +3,11 @@
 Student: Kapil Tamang  
 Project: B05 – Resilient Case Management Services  
 Last updated: November 8, 2026  
-Document status: Proposed — initial draft for review
+Document status: Assignment 1 draft
 
 ## Progress Note
 
-This draft identifies prosecutors and authorized case staff at the Los Angeles County District Attorney's Office (LADA) as people who could benefit from reliable access to criminal case documents. I reviewed LADA's RFP-DA-IT01 to understand its legacy applications and integration challenges. I also reviewed PostgreSQL documentation on replication and high availability. I narrowed my contribution to investigating how a small distributed system can retrieve the correct document from another storage node when the primary node becomes unavailable. I have not implemented the prototype or collected performance measurements. My next step is to define a repeatable retrieval test for normal operation and a simulated failure.
+I reviewed the Los Angeles County District Attorney's Office (LADA) case management system RFP and Chapters 1–4 of the course handbook. I identified the need for reliable document access in an environment with multiple case-management applications and narrowed my contribution to a small distributed document-retrieval service. This draft defines the users, a document request, one storage-node failure, and the boundaries of the project. I also reviewed PostgreSQL's high-availability documentation as a starting point for studying replication. My next step is to specify a repeatable retrieval test and compare normal retrieval with failover retrieval. The prototype and performance measurements are planned work, not completed results.
 
 ## Contents
 
@@ -28,123 +28,127 @@ This draft identifies prosecutors and authorized case staff at the Los Angeles C
 
 ### Problem and Affected People
 
-I am investigating how criminal case documents can remain accessible when stored across independent computer services. Prosecutors, paralegals, and case intake clerks need to retrieve police reports, charging documents, and other case materials while preparing criminal cases.
+I am investigating how authorized staff can retrieve the correct criminal case document when different computer services are responsible for locating and storing files. At LADA, prosecutors, case intake clerks, and paralegals use case documents for filing preparation, case review, and hearings. A prosecutor who needs a police report before a hearing must be able to find and open the right version without unnecessary delay.
 
-The primary user is a prosecutor who needs the correct version of a document before a hearing. If its storage service is unavailable, or the only accessible copy is outdated, the prosecutor may not be able to retrieve the required file. My proposed contribution is a small distributed retrieval mechanism that locates an available copy and checks its version before returning it.
+My project will investigate a focused distributed-systems capability: locating a document, retrieving it from an available storage node, and using another verified copy if the primary node fails. This addresses document availability and retrieval time rather than notifications or legal decisions.
 
 ### Stakeholders and Needs
 
 | Stakeholder | Task | Need |
 |---|---|---|
-| Prosecutor | Retrieve case documents | Fast access to the correct document version |
-| Case intake clerk | Organize case records | Reliable document identifiers and locations |
-| Paralegal | Prepare case materials | Consistent access to required files |
-| IT administrator | Maintain storage services | Detect failures and restore document access |
+| Prosecutor | Retrieve case documents for hearings | Timely access to the correct version |
+| Case intake clerk | Locate and organize case records | Reliable document identifiers and locations |
+| Paralegal | Prepare supporting case materials | Dependable access to required files |
+| IT administrator | Maintain document access services | Detect node failures and restore service |
 
 ### Current Workflow
 
-LADA's RFP-DA-IT01 reports that the office uses the legacy Prosecutor Information Management System (PIMS) alongside eFolder, SharePoint, Notes/Domino, eCER, and spreadsheets. The RFP identifies fragmented systems, duplicate data entry, and limited integration. [1]
+LADA's official RFP-DA-IT01 describes its Prosecutor Information Management System (PIMS) and supporting tools, including eFolder, SharePoint, Notes/Domino, and eCER. The RFP identifies fragmented applications, duplicate data entry, and limited integration. It calls for a modern, integrated, cloud-based case management system. [1]
 
-In a representative workflow, an authorized employee identifies a criminal case, locates a document in the relevant application or repository, and retrieves it for case preparation. This is a simplified assumed workflow, not a verified description of every LADA employee's steps. The RFP does not specify exactly where files are physically stored, the number of storage nodes, or current retrieval times.
+A typical document-access task involves identifying the case, locating its report or filing document in the relevant application, retrieving the file, and reviewing it for case work. My proposed project studies how this access task could work through independent services, especially when one storage service becomes unavailable.
 
 ### Concrete Scenario
 
-Illustrative scenario, not a measured incident: A prosecutor preparing for a hearing requests police report `DOC-104-01`, version 2, for fictional case `LADA-DEMO-104`.
+Consider a fictional case, LADA-DEMO-104. A prosecutor requests police report DOC-104-01, version 2. In the proposed prototype, Storage Node A contains the primary document, while Storage Node B stores a replica. The Document Access Service receives the request and uses document metadata to locate the file.
 
-In my proposed prototype, Storage Node A holds the primary copy and Storage Node B maintains a replica. A Document Access Service receives the request and checks metadata about the document's version and location. Normally, it retrieves version 2 from Node A and returns the file.
+During normal operation, the service retrieves version 2 from Node A and returns it to the prosecutor. If Node A stops responding, the service attempts to retrieve the document from Node B. When Node B holds a complete, verified version 2, the request can still succeed. If it holds only version 1, the system reports that the required version is unavailable rather than returning the wrong file.
 
-Suppose Node A stops responding. The access service tries Node B. If Node B has a complete, verified version 2, the document can still be returned. If Node B has only version 1, the service must report that the required version is unavailable instead of silently returning an outdated file. This illustrates partial failure, replication, availability, and consistency in a distributed system.
+This student test scenario illustrates a partial failure: one service stops working while the remaining services continue. It provides a concrete way to investigate availability, replication, version consistency, and retrieval delay.
 
 ### Workflow Image
 
-![An authorized prosecutor requests a case document from a Document Access Service, which checks document metadata, retrieves the verified version from Storage Node A during normal operation, or uses Storage Node B as a replica after a primary-node failure.](assets/document-access-architecture.png)
+![A prosecutor requests a case document from the Document Access Service, which checks metadata and retrieves the required version from primary Storage Node A or verified replica Storage Node B after a failure.](assets/document-access-architecture.png)
 
-*Figure 1. Proposed distributed case-document access and failure-recovery workflow. A prosecutor requests a document through a central service that checks metadata and retrieves the required version from a primary node or verified replica. This is a student simulation, not LADA's current architecture.*
+*Figure 1. Proposed distributed document access workflow. The access service uses metadata to locate the file, retrieves it from Node A during normal operation, and attempts verified retrieval from Node B when Node A is unavailable. This diagram shows the proposed student prototype.*
 
-### Evidence
+### Evidence and Existing Approach
 
-LADA's official RFP-DA-IT01, dated September 29, 2026, documents legacy applications, fragmented information systems, limited integration, and the need for a modern cloud-based case management system with performance and disaster-recovery considerations. [1] It does **not** confirm that the county has experienced the specific storage failure in my example.
+The LADA RFP establishes a real need to modernize and integrate case-management applications. Its discussion of PIMS, eFolder, and other separate tools provides the organizational setting for investigating dependable access to case information. [1]
 
-PostgreSQL's high-availability documentation describes database replication and standby approaches. [2] This helps me understand existing techniques, although replicating PostgreSQL records is not the same as replicating PDF files.
-
-Assumptions to test: two independently running storage services can hold copies of a fictional document; one service may fail while the other remains available; and document versions and checksums can help verify a returned copy. I have not interviewed LADA staff or measured its storage performance.
+PostgreSQL's official high-availability documentation describes replication and standby database techniques. [2] I will study these ideas while distinguishing database metadata replication from copying actual PDF files. For the prototype, I propose two independent file-storage services and a metadata store that records document IDs, versions, and locations. This is the design to be tested, not a description of LADA's deployed infrastructure.
 
 ### Six-Week Contribution (Semester I)
 
-I will investigate one bounded operation: retrieving a required document from an available storage node when the primary node is unavailable. The initial model will have one test user, a few fictional PDF files, one access service, one metadata store, and two separate storage services. I will describe normal retrieval, primary-node failure, replica verification, and the outcomes the user should receive.
+I will focus on one operation: retrieving one requested document version from an available storage node. My initial scope includes one simulated authorized user, a small set of fictional PDF documents, one Document Access Service, one metadata database, and two independently running storage services.
 
-I will plan measurements of retrieval time, successful requests, and correct-version returns. A small proof of concept may be developed if time allows. The first assignment focuses on understanding and scoping the problem, not completing an enterprise storage system.
+I will describe normal retrieval and a primary-node failure, define the expected result for each case, and plan measurements of retrieval time and version correctness. A small proof of concept may be developed during the semester. The goal is a testable, manageable design rather than a complete case-management platform.
 
 ### Semester II Scope
 
-The larger goal is to implement a working distributed document-retrieval prototype with basic replication, failure detection, version checking, and failover. I will compare single-node retrieval with two-node replicated retrieval using the same synthetic files and failure conditions. Measures will include retrieval latency, successful retrieval rate, failover delay, replication delay, and wrong-version outcomes. Results will describe the behavior of the prototype, not LADA's production systems.
+In Semester II, I plan to implement the retrieval service and two storage nodes, maintain test-document replicas, simulate node failures, and compare a single-node baseline with a replicated approach. I will measure total retrieval latency, failover delay, successful retrieval rate, replica-update delay, and whether the required version was returned. These experiments will show the performance and reliability tradeoffs of the proposed prototype.
 
 ### Exclusions
 
-- Real criminal case records, confidential data, and connections to actual LADA infrastructure.
-- Integration with real courts, police databases, or government cloud services.
-- Prosecution decisions, court filing, evidence chain of custody, and victim notifications.
-- A complete case management platform, full authentication system, or production security certification.
-- Guarantees of access if both storage nodes, the shared metadata store, or the entire host computer fail.
-- Datacenter-scale deployment or physical disaster recovery in the initial student prototype.
+- Real criminal case files, sensitive personal data, and access to LADA production systems.
+- Integration with courts, police databases, and government cloud infrastructure.
+- Legal decisions, charging, victim notifications, or a complete evidence-management platform.
+- Building an enterprise CMS or claiming production-level security certification.
+- Guarantees of availability if both storage nodes, the shared metadata store, or the host machine fail.
+- Large-scale datacenter deployment during the initial student project.
 
 ## 2. Requirements and System Specification
 
-Work to come — Assignment 2. Define inputs, outputs, correctness rules, response-time criteria, and acceptance checks.
+Work to come — Assignment 2. Define request inputs, expected responses, version rules, and measurable success criteria.
 
 ## 3. Alternatives and Selected Solution
 
-Work to come — Assignments 2–3. Compare a single-node baseline with replicated document storage and justify the selected approach.
+Work to come — Assignments 2–3. Compare a single-node baseline with verified retrieval from replicated storage.
 
 ## 4. Architectural Design
 
-Work to come — Assignment 3. Specify running components, network messages, deployment boundaries, and service dependencies.
+Work to come — Assignment 3. Specify services, communication paths, and deployment boundaries.
 
 ## 5. Component Design and Interfaces
 
-Work to come — Assignment 3. Define responsibilities, request and response formats, errors, and repeated-call behavior.
+Work to come — Assignment 3. Define component responsibilities, interface messages, and error responses.
 
 ## 6. Data Structure Design
 
-Work to come — Assignment 4. Define document identifiers, version metadata, checksums, replica locations, and persistent records.
+Work to come — Assignment 4. Define document metadata, version identifiers, checksums, and file locations.
 
 ## 7. Algorithm Design and Execution
 
-Work to come — Assignment 4. Add retrieval and failover pseudocode, including normal and interrupted executions.
+Work to come — Assignment 4. Describe normal retrieval, timeout, failover, and version verification.
 
 ## 8. Failures and Security
 
-Work to come — Assignment 4. Analyze node failures, stale replicas, network delays, authorization, and excluded failure conditions.
+Work to come — Assignment 4. Examine failed nodes, stale replicas, access restrictions, and recovery limits.
 
 ## 9. Implementation and Feasibility
 
-Work to come — Assignments 3–6. Document development tools, local setup, implementation status, and a small feasibility experiment.
+Work to come — Assignments 3–6. Record development setup, prototype implementation, and feasibility findings.
 
 ## 10. Testing and Verification
 
-Work to come — Assignments 4–6. Specify reproducible tests and report observed retrieval, failover, and replication performance.
+Work to come — Assignments 4–6. Define repeatable experiments and report measured results.
 
 ## 11. Operation, Maintenance, and Future Work
 
-Work to come — Assignments 4–6. Describe monitoring, diagnosis, recovery, maintenance, limitations, and Semester II milestones.
+Work to come — Assignments 4–6. Describe service monitoring, recovery procedures, and Semester II milestones.
 
 ## 12. Revision History and References
 
 ### Revision History
 
-| Revision date | Change to my design | Reason and evidence |
+| Revision date | Change to my design | Reason |
 |---|---|---|
-| November 8, 2026 | Defined stakeholders, document-retrieval scenario, small contribution, exclusions, and workflow image | Assignment 1; informed by LADA's RFP and course Chapters 1–4 |
+| November 8, 2026 | Defined the users, document retrieval workflow, failure scenario, and bounded Semester I contribution | Assignment 1, informed by LADA RFP-DA-IT01 and distributed-systems concepts |
 
-### One Open Question
+### Open Question
 
-| Open question | Why it matters | Next action |
+| Question | Why it matters | Next action |
 |---|---|---|
-| How can the access service verify that Node B contains the required current document version when Node A fails, without adding excessive retrieval delay? | A replica might be available but outdated, and returning it as current would be incorrect. | Investigate version checks and compare normal and failover retrieval in a controlled test. |
+| When Node A fails, how can the service confirm that Node B has the required document version without adding too much retrieval delay? | A fast response is not useful if it returns an outdated file. | Study version metadata and checksums, then compare retrieval under normal and failure conditions. |
 
 ### References
 
-1. Los Angeles County District Attorney's Office. *Request for Proposals RFP-DA-IT01 – Case Management System Solution* (September 29, 2026), especially Sections 2.1, 2.2, and 3.0. https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
-2. PostgreSQL Documentation. *High Availability, Load Balancing, and Replication*. https://www.postgresql.org/docs/current/high-availability.html
-3. GitHub Docs. *Basic Writing and Formatting Syntax*. https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
+1. Los Angeles County District Attorney's Office. *RFP-DA-IT01 — Case Management System (CMS) Solution*. September 29, 2026. Sections 2.1, 2.2, and 3.0.  
+   https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
+
+2. PostgreSQL Documentation. *High Availability, Load Balancing, and Replication*.  
+   https://www.postgresql.org/docs/current/high-availability.html
+
+3. GitHub Docs. *Basic Writing and Formatting Syntax*.  
+   https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
+
 4. Course handbook. *Chapters 1–4: Distributed Systems and Software Design Foundations*. Instructor-provided reading.
