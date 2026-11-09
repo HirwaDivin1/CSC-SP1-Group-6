@@ -57,6 +57,7 @@ This student test scenario illustrates a partial failure: one service stops work
 
 ### Workflow Image
 
+![Distributed case-document access showing the prosecutor, Document Access Service, metadata database, and two storage nodes.](my-project/assets/architecture.png)
 
 *Figure 1. Proposed distributed document access workflow. The access service uses metadata to locate the file, retrieves it from Node A during normal operation, and attempts verified retrieval from Node B when Node A is unavailable. This diagram shows the proposed student prototype.*
 
