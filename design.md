@@ -96,6 +96,7 @@
     | LADA as an organization | Coordinate case information across applications | Reliable, integrated access to case materials |
 
 *   Workflow and Context Image
+    ![Distributed case-document access showing the prosecutor, Document Access Service, metadata database, and two storage nodes.](my-project/assets/architecture.png)
     
     Simulation of the model of document access for distributed documents of the student. The access service receives the identifier of the document and its version and accesses the document either in the primary storage node or in the replica, if the primary storage node is not available. This scheme illustrates my system, not the infrastructure of the LADA at the present moment.
 
