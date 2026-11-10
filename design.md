@@ -1,157 +1,210 @@
-**Student:** Kapil Tamang  
-**Project:** B05 – Resilient Case Management Services  
-**Assignment:** 1 – Problem and Markdown Foundation  
-**Date:** November 6, 2026  
-**Real-world setting:** Los Angeles County District Attorney's Office (LADA)  
-**Document status:** Initial problem and scope draft
 
-1. Problem and Scope
+# B05 – Distributed Criminal Case Document Storage, Access, and Failure Recovery
 
-   Who Has the Problem?
+Student: Kapil Tamang  
+Project: B05 – Resilient Case Management Services  
+Last updated: November 9, 2026  
+Document status: Assignment 1 draft
 
-    In both cases, the prosecution staff and designated case support personnel from LADA have to find and look over certain documents to be used as a basis in preparing criminal cases. These documents can include reports by police, charging documents, statements by witnesses, and other. Filing deputy district attorney while getting ready for a hearing, for example, will have to find proper documentation for his or her case, make sure that it is the proper version of the document that he or she needs for performing the current task, and access the document promptly. At the same time, intake clerks and paralegals have to use effective methods to locate and sort the records in question. IT systems administrators will have to take care of correct functioning of the corresponding computer systems.
+## Progress Note
 
-    The direct end-user in my project will be an authorized prosecutor, who is in need for one particular case file. He/she requires a correct file to be provided, timely reaction time, and definite message, when the required file has not been found. My project is concerned with delivery of reliable content access through separate computing services and is not intended for delivery of legal conclusions or messages.
+I reviewed the Los Angeles County District Attorney's Office (LADA) case management system Request for Proposals (RFP) and Chapters 1–4 of the course handbook. The RFP describes several older applications and integration challenges. I narrowed my individual B05 contribution to investigating how criminal case documents are stored, located, accessed, transferred, replicated, and recovered across independent services.
 
- *  Current WorkFlow and Documented Issues
+I identified the main stakeholders, developed a fictional case scenario, and prepared a workflow diagram. I also reviewed PostgreSQL's high-availability documentation to better understand replication and data availability. My next step is to define testable requirements and determine how to measure document retrieval and transfer time. The prototype and performance measurements are planned work.
 
-    In the LADA Request for Proposal RFP-DA-IT01 dated September 29, 2026, the already existing system PIMS, which stands for Prosecutor Information Management System, is mentioned in Section 2.2 and was developed primarily for the management of charging documents and statistics. Moreover, the LADA RFP mentions other systems used in addition to PIMS such as eFolder, SharePoint databases, Notes/Domino Applications, ECER (Electronic Charge Evaluation Request) and Excel Spreadsheets. The problems include duplication or inconsistency of data entry and non-integration of applications and justice partners. They require a cloud based case management system. They are modernization and integration requirements not the evidence of a certain server problem or delay.
+## Contents
 
-    Simplified representative process flow for accessing the document will be as follows: a staff member accesses the particular case file, retrieves the necessary document from a system/database, opens the document and views it for the purpose of preparing for the case. This is how the process can be defined; however, the RFP does not provide any confirmed process flow followed by all employees.
+1. [Problem research and scope](#1-problem-research-and-scope)
+2. [Requirements and system specification](#2-requirements-and-system-specification)
+3. [Alternatives and selected solution](#3-alternatives-and-selected-solution)
+4. [Architectural design](#4-architectural-design)
+5. [Component design and interfaces](#5-component-design-and-interfaces)
+6. [Data structure design](#6-data-structure-design)
+7. [Algorithm design and execution](#7-algorithm-design-and-execution)
+8. [Failures and security](#8-failures-and-security)
+9. [Implementation and feasibility](#9-implementation-and-feasibility)
+10. [Testing and verification](#10-testing-and-verification)
+11. [Operation, maintenance, and future work](#11-operation-maintenance-and-future-work)
+12. [Revision history and references](#12-revision-history-and-references)
 
-    If the data and all information is scattered throughout multiple different locations, then it is crucial for one to have the understanding of where the files are stored and how they can be retrieved. This is something that I am unaware of because it is not mentioned in the RFP, namely the physical location of the files, the number of servers, transfer rate, replication and what happens to the storage upon failure.
+## 1. Problem Research and Scope
 
-    https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
+### Problem and Affected People
 
-*   The Specific Distributed-Systems Problem
+I am investigating how criminal case documents can be stored, located, accessed, viewed, and transferred across multiple independent servers in a distributed system. I also want to understand how the system maintains access to the correct documents when one storage server becomes unavailable.
 
-    In this case, the distributed system is realized with the help of different programs or machines sending messages through the network. For instance, the document-access service can handle the request issued by the user, the metadata service can store information about the document version and its potential location, and the storage service can save the file. All these services function independently and may fail independently.
+At the Los Angeles County District Attorney's Office, prosecutors, case intake clerks, and paralegals use criminal case documents such as police reports and charging documents for filing preparation, case review, and hearings. These users need to locate and retrieve the correct document version without unnecessary delays.
 
-    I want to research three related questions. First, it is the question of location – how the access service locates the machine that contains the required document. Second, it is the question of performance – what time period is needed for the transfer of the whole file from the moment when the request was issued to the moment of the document delivery, if the first machine fails to respond. The third question concerns availability and consistency.
+My project focuses on understanding where documents are stored, how their locations are recorded, how authorized users retrieve and view them, and how long documents take to transfer between services. I will also investigate how document copies are synchronized and how another storage node can provide access when the primary node fails.
 
-    Where there are two replicas of the same document kept in two servers, then it is likely that the document may still be retrieved even if one of the servers has failed. However, the replica might not have the latest version of the document. Just by accessing another server may not suffice in such cases. What is required is to verify whether the version present is the required one or not.
+The goal is to investigate a small distributed document-access mechanism that supports reliable storage, efficient retrieval, document-version correctness, and continued availability during individual storage-node failures.
 
-    My main research question can be put as:
-    How can the small document access service restore the required version of the case file from the available storage node in case of partial failure? 
+### Stakeholders and Needs
 
-*   Concrete Scenario: One Prosecutor, One Document, One Failure
+| Stakeholder | Task | Need |
+|---|---|---|
+| Prosecutor | Locate, retrieve, and view criminal case documents | Timely access to the correct document version |
+| Case intake clerk | Store and organize case records | Reliable document identifiers and storage locations |
+| Paralegal | Retrieve supporting case documents | Dependable access to required files |
+| IT administrator | Maintain document storage and access services | Identify server failures and restore document availability |
 
-    Let us consider an artificially constructed example that deals with a particular criminal, and the case number is LADA-DEMO-104. A prosecutor having hearings scheduled requests the document with the ID DOC-104-01, version 2, in PDF format. According to the current student model, Storage Node A is supposed to provide this document whereas Storage Node B is supposed to have the replica of this document. There is a special service called Document Access Service that receives this request. Metadata DB stores the ID, the version number of the document, and its location.
+### Current Workflow
 
-    In case of normal circumstances, the prosecutor is requesting the version 2 of the document, the access service verifies the simulated test identity, accesses the metadata, retrieves the file from Node A, checks the document version and checksum, and then sends back the file to the requester. The time period between receiving the request by the access service and sending the file back will be used for calculating the retrieval latency.
+LADA's official RFP-DA-IT01 describes its Prosecutor Information Management System (PIMS) and supporting applications, including eFolder, SharePoint, Notes/Domino, and eCER. The RFP identifies fragmented applications, duplicate data entry, and limited integration between systems. It calls for a modern, integrated, cloud-based case management system. [1]
 
-    In this situation, we assume that Node A goes down while access service is working properly. When access service timeout occurs and the failure is detected, it attempts to retrieve version 2 from Node B. In case Node B contains the complete version 2 that is valid, the prosecutor gets the file plus the delay associated with detecting and failing over.
+A typical document-access task begins when an authorized employee identifies a criminal case and locates the required document in the appropriate application or repository. The employee then retrieves and reviews the document for case preparation.
 
-    In case node B only has version 1, then the system should not give back the file as version 2 without explaining why it is unable to provide the requested version. The copied file will have no use if it does not satisfy the version requirements.
+My project investigates how this process could work within a proposed distributed system where different services are responsible for document storage, location, retrieval, replication, and recovery. The investigation will focus on five connected areas.
 
-    This is an example of a test case and not the actual failure of LADA. This scenario is deliberately made simple enough to repeat using the fictitious entries.
+### 1. Document Storage
 
+The first part of my project focuses on understanding where criminal case documents are stored within a distributed system.
 
-*   Where the Documents Will Be Stored in the Prototype
+In my proposed prototype, Storage Node A contains the primary PDF document, while Storage Node B maintains another copy. The actual document files are saved within the storage services.
 
-    In the case of the proposed prototype, the PDFs and document metadata will not be stored in the same place. Storage Nodes A and Storage Node B will store copies of the PDFs separately while the metadata of the documents will be stored in a PostgreSQL database.
+A separate metadata database records information such as the document ID, version number, checksum, and storage-node locations.
 
-    The document metadata will contain the following information: a reference to the document, version number, expected checksum, and storage nodes holding copies of the documents. With the help of this information, the access service will be able to determine the storage node and start file transfer via the network connection.
+This allows the Document Access Service to identify where a requested document is stored without requiring the prosecutor to know the physical server or file path.
 
-    For example, in case the prosecutor needs DOC-104-01, the access service will first check the metadata database for the document, then connect to the right storage node and ask for and receive the PDF. It should be noted that there is a difference between accessing the metadata entry and transferring the document as the former will contain information about the latter.
+I want to investigate how document storage locations are organized and how the system determines which server contains a particular document.
 
-    Node A and Node B would function as two distinct storage services. When it comes to the local simulation procedure, they can be run separately as processes or containers on the same computer having different directories for persistent file storage. The configuration may be treated as either failure of service or loss of connection; however, it cannot be seen as evidence of the system resilience in case of loss of the entire laptop or even building.
+### 2. Document Location and Access
 
-    The main idea behind this configuration was to study the impact of the mentioned factors on document availability.
+The second part focuses on how authorized users locate, retrieve, and view stored documents.
 
-    This is a proposed student design and not the existing infrastructure of LADA.
+For example, a prosecutor may request a police report using its document ID and required version number.
 
-*   Performance and Failure Questions to Investigate
+The Document Access Service receives the request, checks the simulated user's authorization, and queries the metadata database to determine which storage node contains the requested document.
 
-    Another element of measurement is the speed of retrieving data from all the different nodes in storage. Retrieval time is determined by the time taken between the time the Document Access Service receives the request and the time the entire document is received.
+The service then contacts an available storage node, retrieves the file, and returns the PDF so the prosecutor can open and view it.
 
-    For an experiment in the future, I will be using some synthetic documents that will have sizes of 1 MB, 10 MB, and 50 MB. These numbers above are the inputs for testing and not the actual sizes of the county case files. In all the tests, I will be timing the time needed to retrieve the entire document from node A normally and node B in case node A fails. Also, I will be determining whether the right document has been retrieved successfully.
+This part of the project investigates how separate services communicate to provide access to documents without requiring users to manually search individual servers.
 
-    Replication delay is yet another crucial parameter to take into account. The definition of replication delay is the period of time from the moment when version 2 of the document is saved at Node A until a complete and checked version 2 at Node B is achieved. The big replication delay is very probable to cause failover to obtain the old version.
+### 3. Document Transfer and Performance
 
-    Moreover, I would also like to know how a service will recognize that the node is no longer reachable. While a small timeout value will allow faster changing to another storage node, it might mistake slow response as failure, and vice versa – a bigger timeout will avoid unnecessary failover, but the user will wait too much for switching.
+The third part focuses on how documents move between storage services and how long retrieval and transfer operations take.
 
-    However, tests should be conducted prior to any conclusions being made about milliseconds. Comparison will be done on the same files and under the same conditions where one node will be compared with two nodes.
+When a document is requested, the Document Access Service communicates with the metadata database and the selected storage node. The file must then be transferred over the network before the user can view it.
 
-*   Evidence, Assumptions, and Unknowns
+I want to investigate the time required to retrieve a complete document and the time required to copy a document from one storage node to another.
 
-    The strongest documentation evidence would come from the RFP from LADA itself. This document explains that there are multiple aging applications, lack of integration and need of a new cloud-based case management system due to fragmented support systems. The purpose section also indicates performance, operational requirements, and disaster recovery as the problems.
+I plan to test fictional PDF documents of approximately 1 MB, 10 MB, and 50 MB to compare retrieval and transfer times under controlled conditions.
 
-    Such an evidence indicates that it is important to analyze the availability of documents in case management environment. It is not quite clear from the provided evidence whether LADA is experiencing the kinds of problems in the scenario presented with their document server.
+These measurements will help evaluate how document size and distributed communication affect retrieval performance.
 
-    Assuming a student model where the document may be transferred between two storage services; one storage service fails but the other one works; version information about the document is available; and finally a checksum is helpful for validation of the document contents.
+### 4. Replication and Synchronization
 
-    Unknowns for this problem include LADA's real location for the documents, the server configuration, network latency, access time, method of replication, and rate of outages. I'll use the simulation to test the correctness of itself as opposed to the rate of outages of the actual county systems.
+The fourth part focuses on maintaining document copies across different storage nodes.
 
-    From these assumptions and unknowns, I will plan the rest of my research and implementation without forming any hypotheses into statements of fact.
+In my proposed system, Storage Node A contains the primary document, and Storage Node B maintains a replicated copy.
 
-*   Stakeholders and Their Needs
-    
-    | Stakeholder | Document-related task | Main need |
-    |---|---|---|
-    | Prosecutor (primary user) | Request and review a case file before a hearing | Retrieve the correct version promptly, or receive a clear failure result |
-    | Case intake clerk | Locate and organize case records | Dependable document identifiers and locations |
-    | Paralegal / authorized support staff | Find materials for case preparation | Consistent access to relevant documents |
-    | IT administrator | Diagnose unavailable services | Detect failed nodes and understand recovery behavior |
-    | LADA as an organization | Coordinate case information across applications | Reliable, integrated access to case materials |
+When a document is created or updated on Node A, the updated version must be copied to Node B.
 
-*   Workflow and Context Image
-    ![Distributed case-document access showing the prosecutor, Document Access Service, metadata database, and two storage nodes.](my-project/assets/architecture.png)
-    
-    Simulation of the model of document access for distributed documents of the student. The access service receives the identifier of the document and its version and accesses the document either in the primary storage node or in the replica, if the primary storage node is not available. This scheme illustrates my system, not the infrastructure of the LADA at the present moment.
+The system will use document metadata, version numbers, and checksums to determine whether the replica contains the required document.
 
-    The scheme above demonstrates the difference between the requesting user, the service that finds the documents, the metadata base, and two separate storage services.
+I want to investigate how long replication takes and how the system can identify outdated copies.
 
-    Moreover, the scheme above illustrates the critical error situation. In case of unavailability of the primary storage node, the system can access the document from some other node. However, the replica can become the appropriate node only in case when it possesses the corresponding version of the document and passes the integrity check of the file.  
+This is important because having multiple copies does not guarantee that every storage node contains the latest correct version.
 
-    This process is the interaction of various components via the network in order to gain access to the document.
+### 5. Failure Recovery and Availability
 
+The fifth part focuses on what happens when a storage node becomes unavailable.
 
-*   My Small Semester I Contribution
-    
-    My contribution during the first semester will be to design and specify a failure aware document retrieval function.
+If Storage Node A stops responding, the Document Access Service attempts to locate and retrieve the requested document from Storage Node B.
 
-    In this case, I will list one document request specifying the document ID and version required, one case where the document request is successful with Node A replying and another case where the document request is unsuccessful because node A does not reply but node B might have the requested version.
+Before returning the document, the service verifies that Node B contains the correct version.
 
-    In addition to describing the output the user is expected to receive in each case, I will explore some methods that can be employed to measure the retrieval time and version correctness.
+If Node B contains the requested version, the user can continue accessing the document. If Node B only contains an outdated version, the system reports that the required version is unavailable instead of returning the wrong file.
 
-    Scope will involve one authorized user, fictional PDF documents, Document Access Service, metadata database and two storage services.
+I want to investigate how this recovery process affects document availability and retrieval time.
 
-    This contribution is less ambitious in scope than designing a whole document management system. This will aid the investigation of one realistic feature namely retrieving the right version of the document.
+This will allow me to compare normal document retrieval with retrieval during a simulated storage-node failure.
 
-    In this case, in the present semester, I need to identify the problem statement, specify the desired behavior, determine technical questions and evaluation plan. The prototype development will be done if time permits but the first assignment does not require me to have any system developed yet.
+### Concrete Scenario
 
+Consider a fictional criminal case identified as LADA-DEMO-104.
 
+A prosecutor preparing for a hearing needs to view police report DOC-104-01, version 2.
 
-*   Larger Semester II Goal
+In the proposed prototype, the report is stored on Storage Node A. The metadata database records the document ID, version number, and locations of available copies.
 
-    I will be creating independently operating storage services and Document Access Service, adding fictional PDF files to them, performing simulation of failure of the primary node and measuring the results of the retrieval.
+When the prosecutor requests the report, the Document Access Service checks the metadata database to identify where the document is stored.
 
-    The system will enable Document Access Service to find documents, get files from storage nodes, check document versions and try to retrieve the document from replica node in case of failure of the primary node.
+During normal operation, the service retrieves version 2 from Node A, transfers the PDF, and returns it to the prosecutor for viewing.
 
-    I would test the difference between access through one node and access through two replicated nodes using the same test files.
+The system also maintains a replicated copy on Storage Node B. When the report is updated, the system attempts to synchronize the updated version between the storage nodes.
 
-    The major measures will be document retrieval successes, false version returns, normal retrieval latency, failure retrieval latency, failover delay and replica update delay.
+Now consider what happens if Storage Node A becomes unavailable.
 
-    The objective of the comparison is to find out if keeping replicated copies of documents enhances access even in cases where there are node failures, as well as the costs incurred by replicating documents.
+Instead of immediately failing the request, the Document Access Service attempts to retrieve the document from Storage Node B.
 
-    The anticipated outcome of the experiment is an operational educational prototype, experimental data, and tradeoffs between document availability, performance, and consistency.
+If Node B contains a complete, verified version 2, the prosecutor can still retrieve the correct police report.
 
-    The experiment is not meant to substitute LADA's real case management system.
+If Node B contains only version 1, the service reports that the requested version is unavailable.
 
-*    Explicit Project Exclusions
+This fictional scenario demonstrates the complete distributed document workflow, including storage, location, access, retrieval, replication, synchronization, and failure recovery.
 
-    The project does not involve any actual criminal cases, any confidential information, or LADA infrastructure. All the documents and document IDs used are fictional.
+It also provides a way to investigate document transfer time, version correctness, and availability during an individual storage-node failure.
 
-    This project does not deal with court filings, prosecution decisions, evidence chain management, victim notifications, and authentication system development.
+### Workflow Image
 
-    The project does not aim at replacement of eFolder, PIMS, or any other existing software. It will not pretend to fulfill government security standards for production applications.
+![Proposed distributed criminal case document workflow showing an authorized prosecutor, Document Access Service, metadata database, Storage Node A, Storage Node B, replication, document retrieval, and failure recovery.](my-project/assets/architecture.png)
 
-    Initially, the prototype will be concerned with document retrieval process, two separate storage nodes, simple replica verification, and impact of one storage service failure.
+*Figure 1. Proposed distributed criminal case document storage, access, and failure recovery workflow. An authorized user requests a document through the Document Access Service. The service checks the metadata database to locate the correct version, retrieves the file from Storage Node A during normal operation, and returns it for viewing. Documents are replicated to Storage Node B, which can provide a verified copy when Node A becomes unavailable. This diagram represents a proposed student prototype, not LADA's current infrastructure.*
 
-    The prototype is not aimed at guaranteeing document availability if both storage nodes, common metadata database, and whole host are unavailable.
+### Evidence and Existing Approach
 
-    The first study is devoted to document retrieval process and one storage service failure rather than all possible disasters and enterprise storage systems.
+LADA's official RFP provides evidence of a real organizational need to modernize case-management applications and improve integration between existing systems. It identifies multiple applications, including PIMS, eFolder, and SharePoint, that support case-related information management. [1]
+
+This provides the real-world context for investigating how documents can be stored, located, and retrieved reliably across independent services.
+
+PostgreSQL's official high-availability documentation describes replication and standby database techniques that support data availability. [2]
+
+I will use these concepts as a starting point for understanding distributed storage and recovery while distinguishing database replication from the replication of actual PDF documents.
+
+My proposed approach uses a Document Access Service, a metadata database, and two independent storage nodes.
+
+The metadata database records document identifiers, versions, and storage locations, while the storage nodes maintain the actual files.
+
+This architecture is a proposed student simulation intended to investigate document storage, access, transfer performance, replication, and failure recovery.
+
+### Six-Week Contribution (Semester I)
+
+My individual contribution during Semester I is to investigate and design a small distributed document storage and retrieval mechanism.
+
+I will focus on one complete document workflow: storing a fictional PDF, recording its location, locating it through metadata, retrieving and viewing it, transferring it between storage services, maintaining a replicated copy, and attempting recovery when the primary node becomes unavailable.
+
+The initial scope includes one simulated authorized user, a small set of fictional documents, one Document Access Service, one metadata database, and two independently running storage services.
+
+I will describe the expected behavior of each operation and define how to measure document retrieval time, transfer time, replica-update delay, and version correctness.
+
+A small proof of concept may be developed if time permits.
+
+My goal during Semester I is to establish a clear and testable distributed-systems design rather than implement an entire criminal case management platform.
+
+### Semester II Scope
+
+In Semester II, I plan to implement a working prototype that demonstrates document storage, location, retrieval, transfer, replication, and failure recovery across two independent storage nodes.
+
+The prototype will allow fictional PDF documents to be stored and retrieved through the Document Access Service.
+
+I will use a metadata database to track document identifiers, versions, and storage locations.
+
+I will also implement document replication between Storage Node A and Storage Node B and simulate storage-node failures to observe how retrieval behaves when the primary node becomes unavailable.
+
+I plan to compare a single-node baseline with the replicated approach.
+
+The evaluation will measure document retrieval latency, transfer time between storage nodes, replica-update delay, successful retrieval rate, failover delay, and whether the correct document version was returned.
+
+These experiments will help me understand the tradeoffs between performance, reliability, availability, and consistency in a distributed document storage system.
+
+### Exclusions
+
+- The project will focus on document storage, location, access, retrieval, transfer, replication, synchronization, and failure recovery rather than developing a complete case management system.
+- The initial prototype will use fictional criminal case documents instead of confidential records.
+- Direct integration with external court systems, police databases, and government production systems is outside the initial scope.
+- Legal decision-making, case prosecution workflows, victim notifications, and other administrative functions will not be implemented.
+- Large-scale production deployment and advanced disaster recovery will be considered future extensions rather than part of the initial prototype.
 
 2. Requirements and Success Criteria
 
