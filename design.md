@@ -148,7 +148,8 @@ It also provides a way to investigate document transfer time, version correctnes
 
 ### Workflow Image
 
-![Distributed criminal case document storage, access, replication, and failure recovery workflow.](assets/architecture.png)
+![Distributed criminal case document storage, access, replication, and failure recovery workflow](assets/arch.png)
+
 
 *Figure 1. Proposed distributed criminal case document workflow. The Document Access Service uses metadata to locate a document, retrieves it from Storage Node A during normal operation, and uses a verified copy from Storage Node B when Node A becomes unavailable.*
 
