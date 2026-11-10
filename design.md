@@ -148,9 +148,9 @@ It also provides a way to investigate document transfer time, version correctnes
 
 ### Workflow Image
 
-Proposed distributed criminal case document workflow showing an authorized prosecutor, Document Access Service, metadata database, Storage Node A, Storage Node B, replication, document retrieval, and failure recovery.](my-project/assets/architecture.png
+![Distributed criminal case document storage, access, replication, and failure recovery workflow.](assets/architecture.png)
 
-*Figure 1. Proposed distributed criminal case document storage, access, and failure recovery workflow. An authorized user requests a document through the Document Access Service. The service checks the metadata database to locate the correct version, retrieves the file from Storage Node A during normal operation, and returns it for viewing. Documents are replicated to Storage Node B, which can provide a verified copy when Node A becomes unavailable. This diagram represents a proposed student prototype, not LADA's current infrastructure.*
+*Figure 1. Proposed distributed criminal case document workflow. The Document Access Service uses metadata to locate a document, retrieves it from Storage Node A during normal operation, and uses a verified copy from Storage Node B when Node A becomes unavailable.*
 
 ### Evidence and Existing Approach
 
