@@ -11,9 +11,9 @@
 
 ## Progress note
 
-This week I changed projects. My earlier idea, a ransomware tripwire on one machine, was not clearly distributed, so I moved to a blocklist that campuses share directly with each other, with no central operator. The instructor approved this direction on November 5 and asked me to call it a distributed blocklist rather than a replicated one, since copying the list is only one part of the problem.
+This week I changed projects. My earlier idea, a ransomware tripwire on one machine, was not clearly distributed, so I moved to a blocklist that campuses share directly with each other, with no central operator. The instructor approved this direction on November 5 and asked me to call it a distributed blocklist rather than a replicated one, since copying the list is only one part of it.
 
-To check that the problem is real before designing anything, I replayed six days of public honeypot data. Sharing bans between sites stopped noticeably more attacker attempts than local bans alone, but requiring two or three sites to agree removed much of that gain, while a one-hour delay in sharing barely mattered. The main open issue is whether agreement keeps enough benefit to justify its safety. Next, in Assignment 2, I will write requirements and compare local bans, a central hub and k-of-n agreement.
+To check that the problem is real, I replayed six days of public honeypot data. Sharing bans between sites stopped noticeably more attacker attempts than local bans alone, but requiring two or three sites to agree removed much of that gain, while a one-hour delay in sharing barely mattered. The main open issue is whether agreement keeps enough benefit to justify its safety. Next, in Assignment 2, I will write requirements and compare local bans, a central hub and k-of-n agreement.
 
 ## Contents
 
@@ -34,7 +34,7 @@ To check that the problem is real before designing anything, I replayed six days
 
 **Problem and affected people:**
 
-For a system administrator protecting a research campus's SSH login servers, password-guessing attempts arrive all day, and scientific institutions often face these attacks with limited security staff [1]. Each campus blocks attackers with its own tools, such as fail2ban [8], so an address that one campus has already caught must start over at the next campus before it is banned there too; guessing spread across many sources is also hard to see from any single site [3], and attackers have moved between HPC sites using stolen SSH credentials [2]. The consequence is attacker attempts reaching servers that another campus had already stopped. Sharing bans through one central hub would fix that, but a single mistake or compromise at the hub, or at one member, could then lock researchers out at every campus at once. Requiring several campuses to agree before a ban is safer, but it bans fewer attackers. My project will investigate that trade-off by building a distributed blocklist with no central operator, in which a ban applies once k of n campuses report the same address, and by measuring how much protection it keeps compared with local bans and a central hub.
+For a system administrator protecting a research campus's SSH login servers, password-guessing attempts arrive all day, and scientific institutions face such attacks with limited cybersecurity expertise and resources [1]. Each campus blocks attackers with its own tools, such as fail2ban [8], so an address that one campus has already caught must start over at the next campus before it is banned there too; guessing spread across many attacking addresses is also hard to spot by looking at one address at a time [3], and attackers have moved between HPC sites using stolen SSH credentials [2]. The consequence is attacker attempts reaching servers that another campus had already stopped. Sharing bans through one central hub would fix that, but a single mistake or compromise at the hub, or at one member, could then lock researchers out at every campus at once. Requiring several campuses to agree before a ban is safer, but it bans fewer attackers. My project will investigate that trade-off by building a distributed blocklist with no central operator, in which a ban applies once k of n campuses report the same address, and by measuring how much protection it keeps compared with local bans and a central hub.
 
 | Stakeholder | What they do today | What they need from a shared blocklist |
 |---|---|---|
@@ -85,19 +85,18 @@ Figure 1. Proposed workflow. Each campus keeps its own detector and adds a block
 
 Table 3. Evidence for the problem. The pilot used honeypot data: attackers only, six days, one operator, and 88% of events from one sensor pool, so it cannot measure wrongly blocked users. See [evidence/pilot/README.md](evidence/pilot/README.md) for limits.
 
-**Six-week contribution:** A distributed blocklist prototype on 3–5 virtual machines, one node per simulated campus, that:
+**Six-week contribution:** One working path on 3 virtual machines, one node per simulated campus: a node turns a local fail2ban ban into a report to the other nodes, and each node applies the ban once k of n campuses have reported the same address. fail2ban is reused rather than built.
 
-- reads ban events from a local detector (fail2ban), which is reused rather than built;
-- sends signed reports directly to the other nodes;
-- applies a ban once k of n campuses have reported the same address;
-- lets a campus withdraw its report, and lets bans expire;
-- is compared with local bans only on a replay of public honeypot data.
+- Normal case: with k = 2, an address caught at two campuses is banned at the third before it arrives there.
+- Adverse case: one campus wrongly reports a shared address (the 10:00 row of Table 2); with k = 2, no other campus bans it.
+- Baseline: the same inputs with local bans only.
 
 **Semester II scope:**
 
+- Signed reports, withdrawal of a report, and ban expiry.
 - Recovery after network splits: a cut-off node keeps its local bans and ends up with the same list as the others after it reconnects.
 - A central-hub baseline, so all three approaches run on the same inputs.
-- Measurements of attempts stopped, how many users one bad or mistaken site can lock out, recovery time, and network and resource overhead, at different values of k.
+- A replay of public honeypot data on 3–5 nodes, with measurements of attempts stopped, how many users one bad or mistaken site can lock out, recovery time, and network and resource overhead, at different values of k.
 - Ways to reduce the cost of agreement, such as per-site trust or shorter expiry, if time allows.
 
 **Exclusions:**
@@ -157,6 +156,8 @@ Table 3. Evidence for the problem. The pilot used honeypot data: attackers only,
 |---|---|---|
 | November 5, 2026 | Replaced the ransomware tripwire proposal with a distributed SSH blocklist | The instructor found the earlier idea not clearly distributed; the new direction was approved on November 5 |
 | November 7, 2026 | First version of Section 1, workflow figure and pilot evidence | Assignment 1 (committed after the November 6 deadline) |
+| November 9, 2026 | Corrected the wording of the claims cited to [1] and [3], one sentence of the pilot method, and the progress note length | Rechecked each source against its claim; the progress note limit is 100–150 words |
+| November 11, 2026 | Narrowed the six-week contribution to one working path with one normal and one adverse case; moved signed reports, withdrawal, expiry and the honeypot replay to Semester II | Chapter 4 asks for one important operation, a small input set, a normal case and one adverse case in the six weeks |
 
 | Open question | Why it matters | Next action |
 |---|---|---|
@@ -193,9 +194,9 @@ All sources accessed November 4–6, 2026. Pilot data: CyberLab dataset version 
 - [ ] Requirements connect to design and tests.
 - [ ] Architecture, components, data, and algorithms agree.
 - [ ] Targets and plans are separate from observations.
-- [x] Tables, images, pseudocode, references, and evidence links render correctly.
-- [x] Images have alternative text, captions, and readable labels.
-- [x] Run instructions and evidence support reproduction.
+- [ ] Tables, images, pseudocode, references, and evidence links render correctly.
+- [ ] Images have alternative text, captions, and readable labels.
+- [ ] Run instructions and evidence support reproduction.
 - [ ] I am prepared to present my work and orally review the same selected group mate.
-- [x] Remaining work and maintenance needs are explicit.
-- [x] Instructional placeholders are removed from the final submission.
+- [ ] Remaining work and maintenance needs are explicit.
+- [ ] Instructional placeholders are removed from the final submission.

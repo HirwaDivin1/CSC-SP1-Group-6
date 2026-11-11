@@ -29,7 +29,7 @@ Python 3 standard library only.
 
 ## Method
 
-Each honeypot node is treated as a separate site. A site bans a source after `T` failed attempts within `W` seconds (fail2ban-style). Attempts are counted as reaching SSH if they arrive before the ban that applies at that node.
+Each honeypot node is treated as a separate site. A site bans a source after `T` login attempts within `W` seconds (fail2ban-style). The honeypots accept some passwords, so both failed and accepted logins count as attempts; on a real server fail2ban would count failures only. Attempts are counted as reaching SSH if they arrive before the ban that applies at that node.
 
 - **Local only:** each node bans only on its own detection.
 - **Shared, k of n:** a source is also banned at every node once `k` different nodes have detected it locally (optionally after a propagation delay).
