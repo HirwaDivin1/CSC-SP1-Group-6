@@ -1,7 +1,8 @@
 // Editable source for blocklist_workflow.png
 // Render: dot -Tpng -Gdpi=150 blocklist_workflow.dot -o blocklist_workflow.png
+// Normal case with k = 2 of n = 3: C bans only after reports from A and B.
 digraph blocklist_workflow {
-  rankdir=LR;
+  rankdir=TB;
   fontname="Helvetica"; node [fontname="Helvetica", fontsize=11]; edge [fontname="Helvetica", fontsize=10];
   newrank=true;
 
@@ -15,21 +16,25 @@ digraph blocklist_workflow {
   }
   subgraph cluster_b {
     label="Campus B"; style="rounded"; color="#555555";
-    nodeB [label="Blocklist node B", shape=box, style="filled", fillcolor="#d1e7dd"];
     sshB [label="SSH login server", shape=box];
+    f2bB [label="Local detector\n(fail2ban)", shape=box];
+    nodeB [label="Blocklist node B", shape=box, style="filled", fillcolor="#d1e7dd"];
   }
   subgraph cluster_c {
     label="Campus C"; style="rounded"; color="#555555";
-    nodeC [label="Blocklist node C", shape=box, style="filled", fillcolor="#d1e7dd"];
+    nodeC [label="Blocklist node C\n(needs 2 reports)", shape=box, style="filled", fillcolor="#d1e7dd"];
     sshC [label="SSH login server", shape=box];
   }
 
   attacker -> sshA [label="1. failed logins"];
-  sshA -> f2bA [label="2. auth log"];
-  f2bA -> nodeA [label="3. local ban"];
-  nodeA -> nodeB [label="4. signed report"];
-  nodeA -> nodeC [label="4. signed report"];
-  nodeB -> sshB [label="5. ban once k of n\ncampuses report"];
-  nodeC -> sshC [label="5. ban once k of n\ncampuses report"];
-  attacker -> sshB [label="6. later attempt blocked", style=dashed, color="#b02a37", fontcolor="#b02a37"];
+  sshA -> f2bA [label="2. authentication log"];
+  f2bA -> nodeA [label="local ban"];
+  nodeA -> nodeB [label="3. report (1 of 2)"];
+  nodeA -> nodeC [label="3. report (1 of 2)"];
+  attacker -> sshB [label="4. failed logins"];
+  sshB -> f2bB [label="5. authentication log"];
+  f2bB -> nodeB [label="local ban"];
+  nodeB -> nodeC [label="6. report (2 of 2)"];
+  nodeC -> sshC [label="7. ban applied"];
+  attacker -> sshC [label="8. later attempt blocked", style=dashed, color="#b02a37", fontcolor="#b02a37"];
 }
