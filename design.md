@@ -189,8 +189,6 @@ A failure of the metadata database, simultaneous failure of both storage nodes, 
 
 The performance measurements will depend on the test environment, file sizes, and simulated network conditions. The proposed targets may be revised after initial experiments.
 
-3. Existing Approaches and Comparison
-
 
 ## 3. Alternatives and Selected Solution
 
