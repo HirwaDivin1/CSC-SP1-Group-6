@@ -1,0 +1,23 @@
+# Local detection: the ordinary sshd jail. Each ban is applied with iptables AND
+# reported through the blocklist-report action (the hook a real node would use).
+[sshd]
+enabled  = true
+backend  = polling
+logpath  = /var/log/auth.log
+maxretry = 5
+findtime = 3600
+bantime  = 3600
+action   = iptables-allports[name=sshd]
+           blocklist-report[jail=sshd]
+
+# Shared bans: applied by the node with `fail2ban-client set shared banip <ip>`.
+# It must block the address but must NOT report it again (otherwise nodes would loop).
+# Its filter never matches, so only the node adds bans here. bantime = -1 means the
+# node, not fail2ban, decides when a shared ban ends (expiry is the node's job).
+[shared]
+enabled  = true
+backend  = polling
+filter   = blocklist-shared
+logpath  = /var/log/blocklist-shared.log
+bantime  = -1
+action   = iptables-allports[name=shared]

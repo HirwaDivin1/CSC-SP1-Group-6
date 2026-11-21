@@ -1,0 +1,50 @@
+// Figure 3: main running parts at one campus (C) and its two peers.
+// Render: dot -Tpng -Gdpi=150 architecture.dot -o architecture.png
+digraph architecture {
+  rankdir=TB;
+  graph [fontname="Helvetica", nodesep=0.45, ranksep=0.55, pad=0.3, newrank=true];
+  node  [fontname="Helvetica", fontsize=11, shape=box, style="rounded"];
+  edge  [fontname="Helvetica", fontsize=9];
+
+  subgraph cluster_c {
+    label="Campus C virtual machine"; fontname="Helvetica"; fontsize=12; style="rounded"; color="#2747d6";
+
+    sshd     [label="SSH server\n(reused)"];
+    authlog  [label="authentication log", shape=note];
+    f2b      [label="fail2ban (reused)\nsshd jail: local bans\nshared jail: shared bans"];
+    fw       [label="firewall rules\nf2b-sshd | f2b-shared", shape=box3d];
+    hook     [label="ban hook\n(built)"];
+
+    subgraph cluster_node {
+      label="blocklist node\n(built, Python)"; labelloc="b"; labeljust="r"; fontname="Helvetica"; fontsize=11; style="rounded,filled"; fillcolor="#e3e8fc"; color="#2747d6";
+      recv   [label="report receiver\n(member check;\nlocal-ban requests)"];
+      decide [label="decision logic\ncount current reports;\nexpiry timer"];
+      send   [label="report sender"];
+      apply  [label="ban applier"];
+      listcmd [label="list command\n(operator)"];
+    }
+    store    [label="report store\n(file)", shape=cylinder];
+    members  [label="member list,\nk, lifetime (file)", shape=note];
+  }
+
+  peerA [label="Node at Campus A", style="rounded,filled", fillcolor="#eeeeee"];
+  peerB [label="Node at Campus B", style="rounded,filled", fillcolor="#eeeeee"];
+
+  sshd    -> authlog [label="writes"];
+  authlog -> f2b     [label="reads"];
+  f2b     -> fw      [label="add or remove rule"];
+  fw      -> sshd    [label="refuses banned\naddresses", style=dashed];
+  f2b     -> hook    [label="local ban: address"];
+  hook    -> recv    [label="local ban\n(POST /local-ban)"];
+  decide  -> send;
+  send    -> peerA   [label="report (JSON over HTTP)"];
+  send    -> peerB   [label="report"];
+  peerA   -> recv    [label="report"];
+  peerB   -> recv    [label="report"];
+  members -> recv    [style=dotted, arrowhead=none];
+  recv    -> decide  [label="valid report\nor local ban"];
+  decide  -> store   [label="save / read"];
+  decide  -> apply   [label="ban or lift\nat k / below k"];
+  apply   -> f2b     [label="shared jail:\nbanip / unbanip"];
+  listcmd -> store   [label="reads"];
+}

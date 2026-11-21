@@ -1,0 +1,122 @@
+
+=== Run started 2026-11-17T18:20:19Z on Linux 7.2.15-1-omarchy ===
+Docker version 29.9.2, build a82e528901
+
+=== Versions inside the campus container ===
+Fail2Ban v1.0.2
+Python 3.11.2
+Debian GNU/Linux 12 (bookworm)
+attacker address: 172.18.0.3
+
+=== Step 0: before any failures, the attacker reaches the SSH password check ===
+test@campus: Permission denied (publickey,password).
+
+=== Step 1: attacker makes 6 failed logins (threshold is 5) ===
+attempt 1: test@campus: Permission denied (publickey,password).
+attempt 2: test@campus: Permission denied (publickey,password).
+attempt 3: ssh: connect to host campus port 22: Connection refused
+attempt 4: ssh: connect to host campus port 22: Connection refused
+attempt 5: ssh: connect to host campus port 22: Connection refused
+attempt 6: ssh: connect to host campus port 22: Connection refused
+Status for the jail: sshd
+|- Filter
+|  |- Currently failed:	1
+|  |- Total failed:	6
+|  `- File list:	/var/log/auth.log
+`- Actions
+   |- Currently banned:	1
+   |- Total banned:	1
+   `- Banned IP list:	172.18.0.3
+
+=== Step 1 result: hook log (expect one 'ban' line with the attacker address, jail=sshd) ===
+2026-11-17T18:20:28 ban ip=172.18.0.3 jail=sshd
+
+=== Step 1: attacker tries again while locally banned ===
+ssh: connect to host campus port 22: Connection refused
+
+=== Step 2: node applies a shared ban for a documentation address (203.0.113.7) ===
+1
+Status for the jail: shared
+|- Filter
+|  |- Currently failed:	0
+|  |- Total failed:	0
+|  `- File list:	/var/log/blocklist-shared.log
+`- Actions
+   |- Currently banned:	1
+   |- Total banned:	1
+   `- Banned IP list:	203.0.113.7
+
+=== Step 2 result: hook log (expect NO new line: a shared ban must not be reported again) ===
+2026-11-17T18:20:28 ban ip=172.18.0.3 jail=sshd
+
+=== Step 3: remove the local ban, confirm the attacker can reach SSH again ===
+1
+test@campus: Permission denied (publickey,password).
+
+=== Step 4: node applies a shared ban for the attacker; attacker tries SSH ===
+1
+ssh: connect to host campus port 22: Connection refused
+
+=== Step 4 result: hook log (expect no new 'ban' line for jail=shared) ===
+2026-11-17T18:20:28 ban ip=172.18.0.3 jail=sshd
+2026-11-17T18:20:36 unban ip=172.18.0.3 jail=sshd
+
+=== Step 5: node ends the shared ban itself (what expiry will do); attacker tries SSH ===
+1
+test@campus: Permission denied (publickey,password).
+
+=== Step 5 result: hook log (expect no line for jail=shared) ===
+2026-11-17T18:20:28 ban ip=172.18.0.3 jail=sshd
+2026-11-17T18:20:36 unban ip=172.18.0.3 jail=sshd
+2026-11-17T18:20:51 ban ip=172.18.0.3 jail=sshd
+
+=== SSH log lines from the attacker (how many lines fail2ban could count per attempt) ===
+Invalid user test from 172.18.0.3 port 41010
+pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.18.0.3 
+Failed password for invalid user test from 172.18.0.3 port 41010 ssh2
+Connection closed by invalid user test 172.18.0.3 port 41010 [preauth]
+Invalid user test from 172.18.0.3 port 39960
+pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.18.0.3 
+Failed password for invalid user test from 172.18.0.3 port 39960 ssh2
+Connection closed by invalid user test 172.18.0.3 port 39960 [preauth]
+Invalid user test from 172.18.0.3 port 39962
+pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.18.0.3 
+Failed password for invalid user test from 172.18.0.3 port 39962 ssh2
+Connection closed by invalid user test 172.18.0.3 port 39962 [preauth]
+Invalid user test from 172.18.0.3 port 58634
+pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.18.0.3 
+Failed password for invalid user test from 172.18.0.3 port 58634 ssh2
+Connection closed by invalid user test 172.18.0.3 port 58634 [preauth]
+Invalid user test from 172.18.0.3 port 54454
+pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=172.18.0.3 
+Failed password for invalid user test from 172.18.0.3 port 54454 ssh2
+
+=== fail2ban's own log of what it found and banned ===
+18:20:22,651 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:22
+18:20:24,654 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:24
+18:20:25,257 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:24
+18:20:27,260 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:27
+18:20:27,662 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:27
+18:20:28,047 fail2ban.actions        [16]: NOTICE  [sshd] Ban 172.18.0.3
+18:20:29,667 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:29
+18:20:33,177 fail2ban.actions        [16]: NOTICE  [shared] Ban 203.0.113.7
+18:20:36,628 fail2ban.actions        [16]: NOTICE  [sshd] Unban 172.18.0.3
+18:20:39,077 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:38
+18:20:41,681 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:41
+18:20:43,913 fail2ban.actions        [16]: NOTICE  [shared] Ban 172.18.0.3
+18:20:46,273 fail2ban.actions        [16]: NOTICE  [shared] Unban 172.18.0.3
+18:20:49,090 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:48
+18:20:51,094 fail2ban.filter         [16]: INFO    [sshd] Found 172.18.0.3 - 2026-11-17 18:20:51
+18:20:51,318 fail2ban.actions        [16]: NOTICE  [sshd] Ban 172.18.0.3
+
+=== Firewall rules at the end ===
+-N f2b-shared
+-N f2b-sshd
+-A INPUT -p tcp -j f2b-shared
+-A INPUT -p tcp -j f2b-sshd
+-A f2b-shared -s 203.0.113.7/32 -j REJECT --reject-with icmp-port-unreachable
+-A f2b-shared -j RETURN
+-A f2b-sshd -s 172.18.0.3/32 -j REJECT --reject-with icmp-port-unreachable
+-A f2b-sshd -j RETURN
+
+=== Run finished 2026-11-17T18:20:53Z ===

@@ -1,0 +1,20 @@
+// Figure 2: system context. Render: dot -Tpng -Gdpi=150 context.dot -o context.png
+digraph context {
+  rankdir=LR;
+  graph [fontname="Helvetica", nodesep=0.5, ranksep=0.9, pad=0.3];
+  node  [fontname="Helvetica", fontsize=12, shape=box, style="rounded"];
+  edge  [fontname="Helvetica", fontsize=10];
+
+  attacker   [label="Attacker\n(test machine in the prototype)", shape=box, style="rounded,dashed"];
+  researcher [label="Researcher\n(legitimate SSH user)"];
+  operator   [label="Campus operator"];
+
+  nodes [label="Distributed SSH blocklist\n\nMember campuses A, B, C, each running\nSSH server + fail2ban + blocklist node;\nnodes exchange reports directly", shape=box, style="rounded,filled", fillcolor="#e3e8fc", color="#2747d6", penwidth=1.5, margin="0.3,0.2"];
+
+  outsider [label="Non-member sender\n(test machine in the prototype)", style="rounded,dashed"];
+
+  attacker   -> nodes [label="failed SSH logins"];
+  researcher -> nodes [label="SSH logins\n(must not be wrongly refused)"];
+  operator   -> nodes [label="member list, k, report lifetime;\nlist shared bans"];
+  outsider   -> nodes [label="report (ignored and logged)"];
+}
