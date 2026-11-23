@@ -189,14 +189,15 @@ A failure of the metadata database, simultaneous failure of both storage nodes, 
 
 The performance measurements will depend on the test environment, file sizes, and simulated network conditions. The proposed targets may be revised after initial experiments.
 
-
 ## 3. Alternatives and Selected Solution
 
 ### Overview
 
 This section compares two possible approaches for storing, retrieving, and recovering criminal case documents across storage servers. The first approach uses a single storage node as a simple baseline. The second approach uses two independent storage nodes with replication and failure recovery.
 
-Both approaches will be compared against the requirements defined in Section 2, including document storage, retrieval, version correctness, transfer time, and availability during a storage-node failure. The final design will be selected in Assignment 3.
+Both approaches are compared against the requirements defined in Section 2, including document storage, retrieval, version correctness, transfer time, and availability during a storage-node failure.
+
+After evaluating both approaches, I selected the two-node replicated storage approach because it supports document availability and recovery when the primary storage node becomes unavailable.
 
 ### Approach 1: Single-Node Document Storage (Baseline)
 
@@ -262,13 +263,95 @@ PostgreSQL's high-availability documentation describes replication, standby serv
 
 In this project, PostgreSQL will store document metadata, including document IDs, versions, checksums, and locations. The actual PDF files will be copied between storage services separately. PostgreSQL database replication alone does not automatically replicate externally stored PDF files.
 
-### Preliminary Assessment
+### Selected Solution and Justification
 
-The single-node approach is easier to implement and provides a useful baseline for measuring normal document retrieval. However, it does not provide an alternative storage location when its only node fails.
+I selected Approach 2: Two-Node Replicated Document Storage for my proposed system.
 
-The two-node approach requires additional work for document replication, synchronization, and verification. However, it provides the possibility of retrieving a correct document from another storage node when the primary node becomes unavailable.
+The main reason for this choice is that the two-node approach supports the functional requirements for document replication (FR-03) and failure recovery (FR-04). Unlike the single-node approach, it provides another storage location when the primary node becomes unavailable.
 
-Both approaches will be evaluated using the same functional requirements and proposed performance targets. The final design decision will be made in Assignment 3 after considering reliability, implementation complexity, feasibility, and the results of further analysis.
+The proposed design also supports document version correctness (CR-01) and replica integrity (CR-02) by verifying document versions and SHA-256 checksums before returning files.
+
+Although the two-node approach requires additional implementation work, it better supports my project goal of dependable document access.
+
+The single-node approach will remain a baseline for measuring normal retrieval performance and comparing the reliability of the two designs.
+
+### Decision Record DR-01: Storage Architecture and Failure Recovery
+
+**Context:**
+
+Authorized prosecutors and case support staff need access to the correct criminal case documents even when the primary storage node becomes unavailable.
+
+**Options:**
+
+1. Single-node document storage.
+2. Two-node document storage with replication and failure recovery.
+
+**Choice:**
+
+I selected two-node replicated document storage, using Storage Node A as the primary node and Storage Node B as the replica.
+
+**Reasons:**
+
+The two-node approach satisfies FR-03 and supports FR-04 by maintaining another document copy that can be retrieved when the primary node fails.
+
+It also allows the system to measure replication time, failover retrieval time, and document availability.
+
+**Consequences:**
+
+This choice requires additional storage space, replication logic, file verification, and failure handling.
+
+The system must also prevent outdated or incomplete replicas from being returned to users.
+
+**Conditions for Reconsideration:**
+
+I will reconsider the design if replication consistently fails the proposed performance targets, if synchronization problems cannot be handled correctly, or if implementation complexity exceeds the project scope.
+
+### Decision Record DR-02: Document Version and Integrity Verification
+
+**Context:**
+
+Storage Node A and Storage Node B may contain different versions of a document because replication takes time or a transfer may fail.
+
+Returning an outdated or corrupted document could create problems for prosecutors preparing case materials.
+
+**Options:**
+
+1. Retrieve any available document copy without additional verification.
+2. Verify the requested document version and SHA-256 checksum using PostgreSQL metadata.
+
+**Choice:**
+
+I selected document version and checksum verification using PostgreSQL metadata and SHA-256.
+
+**Reasons:**
+
+This approach supports CR-01 and CR-02 by ensuring that a retrieved document matches the requested version and expected file contents.
+
+For example, if the user requests version 2 but Node B only contains version 1, the service must reject the outdated copy instead of returning it.
+
+**Consequences:**
+
+The Document Access Service must perform metadata lookups and checksum verification before returning a PDF.
+
+This adds processing work but reduces the risk of returning an incorrect document.
+
+**Conditions for Reconsideration:**
+
+If checksum verification causes excessive retrieval delays, I will investigate more efficient verification methods while preserving document correctness.
+
+### Final Design Assessment
+
+The single-node approach is easier to implement and remains useful as a baseline. However, it cannot provide document access when its only storage node fails.
+
+The selected two-node replicated approach provides an alternative retrieval location and better supports the functional requirements for replication, version correctness, and failure recovery.
+
+A verified replica can be returned when Node A becomes unavailable, but the system must report an error if Node B does not contain the requested version.
+
+The final design will use a Document Access Service, PostgreSQL metadata database, Storage Node A, and Storage Node B.
+
+The architecture, component responsibilities, and communication interfaces for this selected solution are described in Sections 4 and 5. The implementation plan and feasibility experiment are described in Section 9.
+
+The proposed retrieval, replication, and failover performance targets have not yet been fully measured.
 
 4. System Architecture
 
@@ -276,11 +359,135 @@ Both approaches will be evaluated using the same functional requirements and pro
 
     This section will describe the placement of the Document Access Service, metadata database, storage nodes, and communication interfaces in greater detail.
 
-5. Component Responsibilities
+## 5. Component Design and Interfaces
 
-    Work to come in a later assignment.
+### Component Responsibility Table
 
-    This section will explain the responsibilities of individual services and describe how they communicate during document requests and storage failures.
+| Component | Main Responsibility | Related Requirements |
+|---|---|---|
+| Document Access Service | Authorizes requests, locates documents, verifies files, and handles failover | FR-02, FR-04, FR-05 |
+| PostgreSQL Metadata Database | Stores document IDs, versions, checksums, and locations | FR-01, FR-02 |
+| Storage Node A | Stores and provides primary PDF documents | FR-01, FR-02 |
+| Storage Node B | Stores replicas and provides fallback retrieval | FR-03, FR-04 |
+| Replication Worker | Transfers documents and verifies replicated copies | FR-03, CR-02 |
+| Test Client | Simulates requests and checks responses | FR-02, FR-05 |
+
+### Critical Operation: Retrieve Document
+
+The critical operation is retrieving a specific document version from an available storage node.
+
+**Endpoint:**
+
+`GET /cases/{case_id}/documents/{document_id}/versions/{version}`
+
+**Related Requirements:** FR-02, FR-04, FR-05, CR-01, and CR-02.
+
+### Input Contract
+
+| Input | Type | Example |
+|---|---|---|
+| Case ID | String | LADA-DEMO-104 |
+| Document ID | String | DOC-104-01 |
+| Version | Positive Integer | 2 |
+| Authorization | Simulated Token | Bearer demo-prosecutor |
+
+### Processing Steps
+
+1. Receive a document retrieval request.
+
+2. Verify simulated user authorization.
+
+3. Query PostgreSQL for the requested document ID, version, checksum, and storage locations.
+
+4. Attempt retrieval from Storage Node A.
+
+5. If Node A is unavailable, attempt retrieval from Storage Node B.
+
+6. Verify the retrieved document's version and SHA-256 checksum.
+
+7. Return the PDF if verification succeeds or return an error if no verified copy is available.
+
+### Output Contract
+
+| Condition | HTTP Status | Output |
+|---|---|---|
+| Correct document retrieved | 200 OK | Verified PDF |
+| Document not found | 404 Not Found | Document not found error |
+| Unauthorized access | 403 Forbidden | Access denied |
+| Invalid version input | 400 Bad Request | Invalid version error |
+| Metadata database unavailable | 503 Service Unavailable | Metadata unavailable |
+| No verified document copy available | 503 Service Unavailable | Verified copy unavailable |
+
+### Normal Operation Example
+
+**Input:**
+
+- User: Authorized Prosecutor
+- Case ID: LADA-DEMO-104
+- Document ID: DOC-104-01
+- Requested Version: 2
+- Storage Node A: Available
+
+**Expected Output:**
+
+- Status: 200 OK
+- Source: Storage Node A
+- Document Version: 2
+- Checksum: Verified
+- Result: PDF returned for viewing
+
+### Failure Recovery Example
+
+**Input:**
+
+- User: Authorized Prosecutor
+- Document ID: DOC-104-01
+- Requested Version: 2
+- Storage Node A: Unavailable
+- Storage Node B: Contains verified version 2
+
+**Expected Output:**
+
+- Status: 200 OK
+- Source: Storage Node B
+- Result: Verified PDF returned
+
+### Unsuccessful Example
+
+**Input:**
+
+- User: Authorized Prosecutor
+- Document ID: DOC-104-01
+- Requested Version: 2
+- Storage Node A: Unavailable
+- Storage Node B: Contains only version 1
+
+**Expected Output:**
+
+- Status: 503 Service Unavailable
+- Error Code: VERIFIED_COPY_UNAVAILABLE
+- Result: No document returned
+
+The system does not return version 1 because the requested version is 2.
+
+### State Changes
+
+Retrieving a document is a read-only operation. It does not modify the stored PDF, document version, or authoritative metadata.
+
+The Document Access Service may record request logs for debugging and performance measurements.
+
+During replication, the system copies the document from Node A to Node B and updates the replica's verification status only after the transfer and checksum verification succeed.
+
+### Interface Details Still Being Worked Out
+
+- Exact PostgreSQL metadata schema
+- Storage-node API endpoints
+- Authorization token handling
+- Request timeout and retry settings
+- Handling of partial transfers
+- Concurrent document update behavior
+
+These details will be finalized during implementation.
 
 6. Data Structures and Persistent Storage
 
