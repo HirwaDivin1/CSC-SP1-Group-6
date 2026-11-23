@@ -3,8 +3,9 @@
 
 Student: Kapil Tamang  
 Project: B05 – Resilient Case Management Services  
-Last updated: November 9, 2026  
-Document status: Assignment 1 draft
+Last updated: November 23, 2026
+Document status: Assignment 3 draft (Assignment 2 feedback incorporated)
+
 
 ## Progress Note
 
@@ -662,19 +663,19 @@ These details will be finalized during implementation.
 - The original file and metadata remain unchanged. A modified document must use a new version number.
 - The exact upload endpoint and atomic storage procedure will be finalized during implementation.
 
-6. Data Structures and Persistent Storage
+6. Data Structure Design
 
     Work to come in a later assignment.
 
     This section will define document identifiers, version records, storage locations, checksums, and persistent metadata structures.
 
-7. Algorithms and Pseudocode
+7. Algorithm design and execution
 
     Work to come in a later assignment.
 
     This section will describe the document retrieval process, storage-node failure detection, replica selection, and version verification.
 
-8. Implementation Plan
+8. Failures and Security
 
     Work to come in a later assignment.
 
@@ -719,38 +720,33 @@ Connect the Document Access Service, PostgreSQL, and both storage nodes. Then pe
 
 **Run Instructions and Evidence:** The feasibility experiment should be documented in `evidence/feasibility/` with its test script, output, and instructions for reproducing the results. Full system run instructions and automated tests will be added during implementation.
 
-10. Risks, Limitations, and Security
+10. Testing and verification
 
     Work to come in a later assignment.
 
     This section will discuss authorization, document integrity, confidentiality, system availability, and the limitations of the local simulation.
 
-11. Progress Note and Open Question
+## 11. Operation, Maintenance, and Future Work
 
-    Progress Note – November 6, 2026
+### Operation and Maintenance
 
-    For Assignment 1, I read Chapters 1-4 of the course handbook and studied the Los Angeles County District Attorney's Office RFP-DA-IT01. This RFP enabled me to establish a problem documented in terms of a fragmented legacy case management application and a lack of integration between these systems.
+The proposed system will require monitoring of the Document Access Service, PostgreSQL metadata database, and both storage nodes.
 
-    Originally, I was contemplating pursuing a more general case management project, but I decided to concentrate on a single specific distributed systems problem of obtaining a right document from the primary storage system.
+The system should detect unavailable storage nodes, verify document versions and checksums, and maintain accurate metadata about document locations.
 
-    My main stakeholders were prosecutors and authorized case support staff, and I created a fictional scenario about obtaining a document by a prosecutor with a storage node failure.
+When Storage Node A becomes unavailable, the service should attempt retrieval from Storage Node B if a verified copy exists.
 
-    I additionally proposed an architecture that includes a Document Access Service, metadata database, and two separate storage nodes. The first workflow shows how documents can be found and retrieved under normal conditions as well as how retrieval can be attempted from a different node in case the main node fails.
+### Future Work
 
-    I defined the personal contributions for Semester I, the implementation goal for Semester II, and the project exclusions.
+Future work will focus on improving replication reliability, document synchronization, and recovery from storage failures.
 
-    So far, I have performed the initial problem investigation and set the project boundaries. I have not implemented the system and measured its performance.  
+One important question is how the system should handle a document update when Storage Node A fails before the updated file is replicated to Node B.
 
-    Open Problem
+For example, if Node A contains version 2 but Node B contains only version 1, the system must not return version 1 when a user requests version 2.
 
-    In a scenario where Storage Node A is down, what mechanism would allow the Document Access Service to ascertain that Storage Node B actually holds the most recent version of a case document and not an old replica?
+The current design addresses this problem by checking document versions and SHA-256 checksums before retrieval. Future implementation work will investigate how to recover incomplete replication operations and synchronize outdated replicas.
 
-    This issue is significant in light of the fact that storing multiple versions of the document can enhance availability, but the documents may not have identical versions.
-
-    For example, if Node A crashes before replication occurs, Node B may actually hold an old version of the document. Using this version to provide the document will yield an erroneous answer.
-
-    What I have to do is learn more about document versioning, integrity checking, and replica selection.
-
+Additional work may include handling simultaneous storage-node failures, metadata database recovery, and more advanced disaster recovery mechanisms.
 
 ## 12. Revision History and References
 
