@@ -364,9 +364,9 @@ The retrieved document is verified before being returned to the user.
 
 ### System Architecture Diagram
 
-![Figure 2 - System Architecture](my-project/assets/B05_architecture_components.png)
+![Figure 2 - System Architecture](my-project/assets/architecture.png)
 
-*Figure 2. Proposed distributed document storage architecture showing the Document Access Service, PostgreSQL metadata database, and storage services.*
+*Figure 2. Proposed distributed document storage architecture showing the Document Access Service, PostgreSQL metadata database, Storage Node A, Storage Node B, replication, and failover.*
 
 ### Architecture Components
 
@@ -391,7 +391,7 @@ If Node A becomes unavailable, the service attempts to retrieve a verified copy 
 
 ### Document Retrieval and Failover Diagram
 
-![Figure 3 - Document Retrieval and Failover](my-project/assets/B05_retrieval_failover.png)
+![Figure 3 - Document Retrieval and Failover](my-project/assets/retrieval.png)
 
 *Figure 3. Proposed retrieval workflow showing normal document access, failure recovery, and version verification.*
 
