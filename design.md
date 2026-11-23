@@ -364,7 +364,7 @@ The retrieved document is verified before being returned to the user.
 
 ### System Architecture Diagram
 
-![Figure 2 - System Architecture](my-project/assets/architecture.png)
+![Figure 2 - System Architecture](my-project/assets/architecture23.png)
 
 *Figure 2. Proposed distributed document storage architecture showing the Document Access Service, PostgreSQL metadata database, Storage Node A, Storage Node B, replication, and failover.*
 
