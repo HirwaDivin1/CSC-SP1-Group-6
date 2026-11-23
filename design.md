@@ -86,9 +86,6 @@ In Semester II, I plan to implement the Document Access Service and two storage 
 - Legal decision-making, prosecution workflows, victim notifications, and other administrative functions will not be implemented.
 - Large-scale production deployment and advanced disaster recovery are future possibilities, not part of the initial prototype.
 
-2. Requirements and Success Criteria
-
-
 ## 2. Requirements and System Specification
 
 ### System Overview
@@ -353,11 +350,109 @@ The architecture, component responsibilities, and communication interfaces for t
 
 The proposed retrieval, replication, and failover performance targets have not yet been fully measured.
 
-4. System Architecture
+## 4. Architectural Design
 
-    Work to come in a later assignment.
+### System Context
 
-    This section will describe the placement of the Document Access Service, metadata database, storage nodes, and communication interfaces in greater detail.
+The proposed system contains an authorized user, a Document Access Service, a PostgreSQL metadata database, and two independent storage nodes.
+
+An authorized prosecutor requests a criminal case document through the Document Access Service. The service checks authorization, queries PostgreSQL for the document information, and retrieves the requested PDF.
+
+Under normal operation, the document is retrieved from Storage Node A. If Node A becomes unavailable, the system attempts retrieval from Storage Node B.
+
+The retrieved document is verified before being returned to the user.
+
+### System Architecture Diagram
+
+![Figure 2 - System Architecture](my-project/assets/B05_architecture_components.png)
+
+*Figure 2. Proposed distributed document storage architecture showing the Document Access Service, PostgreSQL metadata database, and storage services.*
+
+### Architecture Components
+
+| Component | Responsibility | Stored State | Deployment |
+|---|---|---|---|
+| Authorized User | Requests and views documents | No permanent document storage | Test client |
+| Document Access Service | Handles authorization, retrieval, verification, and failover | Temporary request data and logs | Python application |
+| PostgreSQL Database | Stores document IDs, versions, checksums, and storage locations | Persistent metadata | Database service |
+| Storage Node A | Stores primary PDF documents | Original PDF files | Storage service A |
+| Storage Node B | Stores replicated PDF documents | Replicated PDF files | Storage service B |
+| Replication Worker | Copies updates and verifies replicas | Transfer status | Background process in the prototype |
+
+### Communication Between Components
+
+The authorized user sends an HTTP request to the Document Access Service.
+
+The Document Access Service communicates with PostgreSQL using database queries to locate the document and identify its expected version and checksum.
+
+The service communicates with storage nodes to retrieve the requested PDF. The replication process transfers document files from Node A to Node B.
+
+If Node A becomes unavailable, the service attempts to retrieve a verified copy from Node B.
+
+### Document Retrieval and Failover Diagram
+
+![Figure 3 - Document Retrieval and Failover](my-project/assets/B05_retrieval_failover.png)
+
+*Figure 3. Proposed retrieval workflow showing normal document access, failure recovery, and version verification.*
+
+### Document Retrieval Workflow
+
+1. An authorized prosecutor requests document DOC-104-01, version 2.
+
+2. The Document Access Service checks the user's simulated authorization.
+
+3. The service queries PostgreSQL for the document ID, version, checksum, and storage locations.
+
+4. During normal operation, the service retrieves the PDF from Storage Node A.
+
+5. If Node A is unavailable, the service attempts retrieval from Storage Node B.
+
+6. The retrieved document's version and SHA-256 checksum are verified against the metadata record.
+
+7. If verification succeeds, the PDF is returned. Otherwise, an error is reported.
+
+This workflow supports FR-02, FR-04, CR-01, and CR-02.
+
+### Deployment Architecture
+
+The initial prototype will run on a local development computer using separate processes or containers.
+
+The Document Access Service will run as a Python API application. PostgreSQL will run as a database service. Storage Node A and Storage Node B will operate as separate local storage services or directories.
+
+This setup will simulate independent storage-node failures. However, running both storage nodes on one computer does not provide physical fault isolation.
+
+### Build, Reuse, and Simulation
+
+**Components to Build:**
+
+- Document Access Service
+- Document storage and retrieval operations
+- Replication logic
+- Checksum verification
+- Failover handling
+- Performance tests
+
+**Components to Reuse:**
+
+- PostgreSQL for metadata
+- Python libraries for file handling
+- SHA-256 hashing
+- HTTP communication libraries
+
+**Components to Simulate:**
+
+- Authorized prosecutor
+- Fictional criminal case PDF documents
+- Primary storage-node failures
+- Independent storage nodes in a local environment
+
+### Architecture Limitations
+
+The initial prototype assumes that PostgreSQL and the Document Access Service remain available during storage-node failure tests.
+
+Simultaneous failures of both storage nodes, metadata database recovery, and large-scale disaster recovery are outside the initial scope.
+
+Request timeouts, incomplete transfers, and concurrent document updates will be refined during implementation.
 
 ## 5. Component Design and Interfaces
 
