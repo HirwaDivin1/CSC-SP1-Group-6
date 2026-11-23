@@ -507,11 +507,93 @@ These details will be finalized during implementation.
 
     This section will explain the proposed software technologies, development environment, implementation steps, and milestones.
 
-9. Testing and Evaluation
 
-    Work to come in a later assignment.
+## 9. Implementation and Feasibility
 
-    This section will define formal testing procedures for retrieval latency, network delays, storage-node failures, replication delays, and document-version correctness.
+### Smallest Implementation Path
+
+The first goal is to build a small working prototype that can retrieve a PDF, create a replicated copy, and recover from a primary-node failure.
+
+The implementation will follow six steps:
+
+1. Create fictional PDF documents with known IDs, versions, and SHA-256 checksums.
+2. Configure PostgreSQL to store document metadata.
+3. Implement the Document Access Service to retrieve a verified PDF from Node A.
+4. Add replication from Storage Node A to Storage Node B.
+5. Simulate Node A failure and attempt retrieval from Node B.
+6. Measure retrieval, replication, and failover performance.
+
+The initial implementation will use a controlled local test environment.
+
+### Feasibility Experiment FE-01
+
+**Question:**
+
+Can the system retrieve a verified replica when the primary storage location is unavailable while rejecting outdated or corrupted files?
+
+**Procedure:**
+
+A small local Python experiment uses two directories to represent Storage Nodes A and B.
+
+A synthetic PDF-like file is created, and its SHA-256 checksum is calculated. The file is copied to Node B.
+
+Four situations are examined:
+
+1. Both storage copies are available.
+2. Node A is unavailable, and Node B contains a matching copy.
+3. Node A is unavailable, and Node B contains corrupted content.
+4. Node A is unavailable, and Node B contains outdated content.
+
+Only files with the expected checksum are accepted.
+
+### Experiment Evidence
+
+The initial local experiment produced the following results:
+
+| Test | Observed Result | Outcome |
+|---|---|---|
+| Normal retrieval | Node A selected | Passed |
+| Primary node unavailable | Verified copy on Node B selected | Passed |
+| Corrupted replica | File rejected | Passed |
+| Outdated replica | File rejected | Passed |
+
+The local file-copy measurement was approximately 0.707 milliseconds in one trial.
+
+This was a local file-copy measurement, not a network replication measurement. The experiment did not test PostgreSQL communication, HTTP requests, or independent physical storage servers.
+
+The synthetic file was also not validated as a viewable PDF.
+
+### Findings
+
+The local experiment showed that SHA-256 verification can identify a matching replica and reject intentionally corrupted or outdated content.
+
+When Node A was unavailable, the selection logic accepted the matching replica on Node B.
+
+When the copied file did not match the expected checksum, the system rejected it rather than returning incorrect content.
+
+The experiment supports the feasibility of checksum-based document verification, but it does not demonstrate the performance of the complete distributed architecture.
+
+### Resulting Design Decision
+
+I will continue with the two-node replicated storage design and use SHA-256 verification before returning documents.
+
+The system will rely on PostgreSQL metadata to determine the requested document version and expected checksum.
+
+A replica will only be considered valid when its content matches the expected information.
+
+### Remaining Feasibility Questions
+
+- How quickly can the service detect that Node A is unavailable?
+- How long does replication take between separate storage services?
+- How should incomplete document transfers be handled?
+- How can the system prevent outdated replicas from being returned?
+- Can the system meet the proposed two-second, three-second, and five-second performance targets?
+
+### Next Implementation Step
+
+The next step is to connect the Document Access Service, PostgreSQL, and the two storage services.
+
+After these components communicate successfully, I will test document retrieval, replication, and simulated failures using the same requirements and quality targets from Section 2.
 
 10. Risks, Limitations, and Security
 
