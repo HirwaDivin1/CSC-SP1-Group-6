@@ -8,7 +8,8 @@ Document status: Assignment 1 draft
 
 ## Progress Note
 
- I expanded the requirements for my distributed criminal case document storage and retrieval project. I defined five functional requirements covering document storage, retrieval, replication, failure recovery, and invalid requests. I also added correctness rules and proposed measurable targets for retrieval time, replication time, and failover performance. Using my workflow diagram, I compared a simple single-node storage approach with a two-node replicated approach to identify their differences in availability, performance, and complexity. I reviewed the LADA case management system RFP and PostgreSQL's high-availability documentation to support the project context and comparison. My next step is to evaluate the alternatives further and select a final design in Assignment 3. Implementation and performance testing have not yet been completed.
+For Assignment 3, I selected the two-node replicated storage design after comparing it with a single-node baseline. I defined the main architecture, component responsibilities, and document retrieval interface. I also reviewed my professor's Assignment 2 feedback and revised the requirements to address unclear behavior and testing conditions. I added a conflict rule that rejects different content uploaded with an existing document ID and version. I clarified the proposed retrieval, replication, and failover measurements, including timeouts and unsuccessful requests. I also distinguished PostgreSQL database replication from the separate PDF replication mechanism proposed for this project. These revisions improve the consistency between the requirements and the selected architecture. My next step is to complete service integration and measure the proposed performance targets.
+
 
 ## Contents
 
@@ -64,9 +65,12 @@ If Node A stops responding, the service tries Node B. When Node B has a complete
 
 ### Evidence and Existing Approach
 
-The LADA RFP establishes a need to modernize and integrate case-management applications. Its discussion of PIMS, eFolder, and related tools provides the real-world setting for investigating dependable access to case documents. [1]
+The LADA RFP identifies problems with fragmented case-management applications and limited system integration. However, it does not specifically document how often storage-node failures affect prosecutors.
 
-PostgreSQL's high-availability documentation describes database replication and standby techniques. [2] I will study these ideas while distinguishing metadata replication from copying actual PDFs. My proposed system uses a Document Access Service, a metadata database for IDs, versions, and locations, and two file-storage nodes.
+My project uses a simulated storage-node failure to investigate how a distributed document storage system could maintain access to case documents. Although the documents and case scenario are fictional, the technical challenges of replication, document consistency, and failure recovery are real distributed systems problems.
+
+The goal is to evaluate whether maintaining a verified copy on a second storage node can improve document availability when the primary node becomes unavailable.
+
 
 ### Six-Week Contribution (Semester I)
 
@@ -100,9 +104,9 @@ The following requirements define the expected behavior of the proposed prototyp
 
 | Requirement ID | Requirement | Acceptance Check |
 |---|---|---|
-| FR-01 | The system shall store a fictional PDF on Storage Node A and record its document ID, version, checksum, and storage location in the metadata database. | Upload `DOC-104-01` version 2 and verify that the PDF exists on Node A and its metadata record contains the correct information. |
+| FR-01 | The system shall store a fictional PDF on Storage Node A and record its document ID, version, checksum, and storage location in the metadata database. An existing document ID and version cannot be overwritten with different content. | Upload `DOC-104-01` version 2 and verify its metadata. Repeat the upload with identical content and confirm no changes. Upload different content using the same ID and version and verify that HTTP 409 Conflict is returned. |
 | FR-02 | The system shall allow an authorized user to request a document by ID and version and retrieve it from an available storage node. | Request `DOC-104-01` version 2 while Node A is online. Verify that the requested PDF is returned and can be viewed. |
-| FR-03 | The system shall transfer document updates from Storage Node A to Storage Node B and verify that the replicated copy is complete. | Store version 2 on Node A, replicate it to Node B, and compare the document version and checksum on both nodes. |
+| FR-03 | The system shall transfer document updates from Storage Node A to Storage Node B and verify that the replicated copy is complete. | Store version 2 on Node A, replicate it to Node B, and compare the document version and SHA-256 checksum on both nodes. |
 | FR-04 | The system shall retrieve a verified document from Storage Node B when Storage Node A becomes unavailable. | Stop Node A and request version 2. Verify that Node B supplies the correct document when an identical verified copy exists. |
 | FR-05 | The system shall reject unauthorized document requests and report an error when the requested document or correct version is unavailable. | Test an unauthorized user and request version 2 when only version 1 is available. Verify that neither request returns a document. |
 
@@ -118,16 +122,47 @@ For example, if a prosecutor requests `DOC-104-01` version 2 and Storage Node B 
 
 A replicated document must match the original document's content before it is marked as verified. The system will use a SHA-256 checksum to compare the original PDF with its replicated copy. If the checksums do not match, the replica must not be returned as a valid document.
 
+**CR-03 – Document Upload Consistency**
+
+Once a document ID and version have been stored, the associated file content must remain unchanged.
+
+If the same document is uploaded again with identical bytes, the system will recognize it as a repeated upload without changing the existing file or metadata.
+
+If different content is uploaded using the same document ID and version, the system must reject the request with HTTP 409 Conflict. A modified document must use a new version number.
+
+This rule prevents accidental overwriting and protects document-version correctness.
+
 ### Measurable Quality Targets
 
-The following values are proposed targets for a small prototype running on a controlled local test environment. They are not measured performance results.
+The following values are proposed targets for a small prototype running in a controlled local test environment. They are not measured performance results.
+
+All performance tests will use the same 1 MB fictional PDF and 20 attempts per target. Failed requests, incorrect results, and operations that exceed the time limit will count as unsuccessful attempts.
 
 | Quality ID | Quality Target (Proposed) | Measurement and Acceptance Check |
 |---|---|---|
-| QT-01 | Normal document retrieval should complete within 2 seconds for a 1 MB PDF. | Perform 20 requests while Node A is online and measure the time from request submission until the full PDF is received. At least 19 should complete within 2 seconds. |
-| QT-02 | Replication of a 1 MB PDF should complete within 3 seconds. | Perform 20 replication operations and measure the time from the start of the transfer until Node B has a verified copy. At least 19 should complete within 3 seconds. |
-| QT-03 | Retrieval through Node B after Node A becomes unavailable should complete within 5 seconds. | Perform 20 requests with Node A intentionally unavailable and a verified copy already on Node B. At least 19 should complete within 5 seconds. |
-| QT-04 | Every successful retrieval must return the requested document version with a matching checksum. | Test normal retrieval, failover retrieval, and outdated-replica cases. No test may return an incorrect document as successful. |
+| QT-01 | Normal document retrieval should complete within 2 seconds for a 1 MB PDF. | Perform 20 requests while Node A is online. Measure from request submission until the full verified PDF is received. At least 19 requests must succeed within 2 seconds. |
+| QT-02 | Replication of a 1 MB PDF should complete within 3 seconds. | Perform 20 replication operations. Measure from the start of the transfer until Node B has a complete copy with a matching checksum. At least 19 operations must succeed within 3 seconds. |
+| QT-03 | Retrieval through Node B after Node A becomes unavailable should complete within 5 seconds. | Perform 20 requests with Node A unavailable and a verified copy already on Node B. Include failure detection and retrieval time. At least 19 requests must succeed within 5 seconds. |
+| QT-04 | Every successful retrieval must return the requested document version with a matching checksum. | Test normal retrieval, failover retrieval, corrupted files, and outdated replicas. No incorrect document may be reported as successfully retrieved. |
+
+### Performance Test Conditions
+
+All performance tests will use the same local environment, a 1 MB PDF, and the same request sequence when comparing the single-node baseline with the two-node replicated approach.
+
+For QT-01, Node A will remain available. The measurement includes metadata lookup, document retrieval, checksum verification, and delivery of the full PDF.
+
+For QT-02, timing begins when the document transfer starts and ends after Node B has a complete, verified copy. An incomplete transfer or checksum mismatch counts as an unsuccessful attempt.
+
+For QT-03, Node B must already contain the correct verified document before Node A becomes unavailable. The test will include two failure conditions:
+
+1. Ten tests where Node A is stopped and refuses connections immediately.
+2. Ten tests where Node A remains unresponsive until the connection attempt times out.
+
+The proposed connection timeout for Node A is 1.5 seconds. The total failover target is 5 seconds, including detecting Node A's failure, retrieving the document from Node B, verifying the checksum, and delivering the PDF.
+
+Every failed, incorrect, or timed-out request counts as a miss. At least 19 out of 20 attempts must successfully meet the time target.
+
+These are proposed test conditions and will be evaluated during implementation.
 
 ### Ordinary Input and Output Example
 
@@ -170,21 +205,49 @@ Expected Output:
 
 The service must not return version 1 because it does not match the requested version. This test checks whether the system preserves document correctness during a storage-node failure.
 
+### Upload Conflict Example
+
+**Repeated Upload with Different Content**
+
+Input:
+
+- Document ID: `DOC-104-01`
+- Requested version: 2
+- Existing document: Version 2 with checksum A
+- New upload: Different PDF content with checksum B
+
+Expected Output:
+
+- Status: HTTP 409 Conflict
+- Error: `DOCUMENT_VERSION_CONFLICT`
+- Result: Upload rejected
+- Existing document: Unchanged
+
+If the same document is uploaded again with identical bytes, the system recognizes it as a repeated upload and preserves the existing file and metadata.
+
+If the uploaded file contains different bytes, the system rejects the request because the document ID and version already exist. The user must provide a new version number, such as version 3, to store updated content.
+
+This example addresses the duplicate-version condition identified in the Assignment 2 feedback.
+
 ### Assumptions
 
 The prototype assumes that a small collection of fictional PDF documents will be used for testing. The Document Access Service will communicate with two independently operated storage services over a simulated or local network. PostgreSQL will store document metadata, including document IDs, versions, checksums, and storage locations.
 
 User authorization will be simulated rather than connected to a real government identity system. The initial tests assume that the metadata database and Document Access Service remain available while individual storage-node failures are introduced. Replication will be tested after each document update, and a copy will be considered valid only after verification.
 
+The prototype also assumes that document IDs and versions are unique identifiers for stored file contents. A new version number will be required when the content of an existing document changes.
+
 ### Constraints
 
 The system will use one Document Access Service, one PostgreSQL metadata database, and two storage nodes. All documents will be fictional, and no confidential criminal case information will be used.
 
-The project will focus on storage, retrieval, document transfer, replication, version correctness, and recovery from a storage-node failure. It will not implement an entire criminal case management system or integrate directly with government databases.
+The project will focus on document storage, retrieval, transfer, replication, version correctness, and recovery from a storage-node failure. It will not implement an entire criminal case management system or integrate directly with government databases.
 
 A failure of the metadata database, simultaneous failure of both storage nodes, automatic conflict resolution for concurrent updates, and large-scale disaster recovery are outside the initial prototype scope.
 
-The performance measurements will depend on the test environment, file sizes, and simulated network conditions. The proposed targets may be revised after initial experiments.
+The proposed PDF replication mechanism will operate separately from PostgreSQL database replication. PostgreSQL will manage metadata, while PDF files will be transferred and verified between storage services.
+
+The performance measurements will depend on the test environment, file sizes, and simulated network conditions. The proposed targets may be revised after initial experiments, with any changes documented before the final comparison.
 
 ## 3. Alternatives and Selected Solution
 
@@ -254,11 +317,17 @@ The experiments will measure document retrieval latency, file transfer time, rep
 
 ### Evidence Supporting the Approaches
 
-The Los Angeles County District Attorney's Office RFP-DA-IT01 describes the need to modernize and integrate its case management applications. This provides the real-world motivation for investigating reliable access to criminal case documents across separate services. The proposed storage architecture is a student design rather than a description of LADA's existing infrastructure. [1]
+The Los Angeles County District Attorney's Office RFP-DA-IT01 describes fragmented applications and the need for a modern integrated case-management system. It provides the real-world motivation for studying dependable document access. However, it does not specifically establish the frequency of storage-node failures or demonstrate that two-node replication is used by LADA. [1]
 
-PostgreSQL's high-availability documentation describes replication, standby servers, and failure recovery in database systems. These concepts help explain how additional copies and recovery mechanisms can improve availability while introducing synchronization challenges. [2]
+PostgreSQL's high-availability documentation explains database replication, standby servers, and recovery mechanisms. These concepts provide a technical reference for understanding availability and failure recovery. [2]
 
-In this project, PostgreSQL will store document metadata, including document IDs, versions, checksums, and locations. The actual PDF files will be copied between storage services separately. PostgreSQL database replication alone does not automatically replicate externally stored PDF files.
+However, PostgreSQL database replication is different from replicating PDF files across independent storage services.
+
+In the proposed design, PostgreSQL will store document metadata, including IDs, versions, checksums, and storage locations. The actual PDFs will be stored separately on Storage Nodes A and B.
+
+The proposed PDF replication mechanism will copy the file from Node A to Node B and calculate a SHA-256 checksum after transfer. The replica will be considered verified only when its version and checksum match the expected metadata.
+
+The behavior and performance of this PDF replication mechanism must be established through prototype experiments rather than assumed from PostgreSQL's database replication documentation.
 
 ### Selected Solution and Justification
 
@@ -584,6 +653,15 @@ During replication, the system copies the document from Node A to Node B and upd
 
 These details will be finalized during implementation.
 
+### Upload Conflict Handling
+
+- FR-01 also requires a defined response when a document ID and version already exist.
+- The proposed upload interface will compare the SHA-256 checksum of the incoming PDF against the existing document version.
+- If both checksums match, the system treats the request as an identical retry without changing the stored document.
+- If the checksums differ, the system returns HTTP 409 Conflict with the error code DOCUMENT_VERSION_CONFLICT.
+- The original file and metadata remain unchanged. A modified document must use a new version number.
+- The exact upload endpoint and atomic storage procedure will be finalized during implementation.
+
 6. Data Structures and Persistent Storage
 
     Work to come in a later assignment.
@@ -673,38 +751,43 @@ Connect the Document Access Service, PostgreSQL, and both storage nodes. Then pe
 
     What I have to do is learn more about document versioning, integrity checking, and replica selection.
 
-12. Sources and Existing Approaches
 
-    Source 1: Los Angeles County District Attorney's Office
+## 12. Revision History and References
 
-    Title: Request for Proposals RFP-DA-IT01 – Case Management System Solution
+### Assignment 2 Feedback and Response Record
 
-    Publication Date: September 29, 2026
+I reviewed the feedback received after Assignment 2 and made the following changes to improve the design.
 
-    Relevant Sections: 2.1, 2.2, and 3.0
+| Feedback | Revision Made | Affected Section |
+|---|---|---|
+| Storage-node failure scenario needs supporting evidence. | Clarified that the LADA RFP supports the modernization problem, while the storage-failure case is a proposed prototype scenario. | Section 1 |
+| Behavior for duplicate document IDs and versions was undefined. | Added a rule accepting identical retries and returning HTTP 409 Conflict when different content uses an existing ID and version. | Sections 2 and 5 |
+| Performance test conditions were unclear. | Defined the 1 MB workload, immediate failure and timeout scenarios, proposed timeouts, and how failed requests count toward the 19-of-20 target. | Section 2 |
+| PostgreSQL replication evidence did not establish PDF replication behavior. | Distinguished database replication from file replication and identified the proposed PDF transfer and SHA-256 verification mechanism. | Sections 1 and 3 |
+| Metadata, navigation, and progress information were outdated. | Updated the progress note and document metadata and organized the revisions under the current sections. | Document header and Section 12 |
+| Filename and duplicate design files caused confusion. | Adopted DESIGN.md as the intended main file and identified the older draft for archival after checking its contents. | Repository organization |
 
-    Link: https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
+### Remaining Questions
 
-    This is the primary source for the real-world problem. The RFP describes LADA's legacy case management environment, supporting applications such as PIMS and eFolder, fragmented information systems, and integration difficulties.
+The system still requires performance measurements to determine whether the proposed retrieval, replication, and failover targets can be achieved.
 
-    It also establishes the county's interest in implementing a modern, cloud-based case management system and identifies performance, integration, and disaster recovery as important concerns.
+The effectiveness of the PDF replication mechanism must also be evaluated using separate storage services.
 
-    The RFP provides evidence of the organizational need but does not directly establish the storage-node failure described in my hypothetical scenario.
+### Revision History
 
-    Source 2: PostgreSQL Documentation
+| Date | Assignment | Changes |
+|---|---|---|
+| November 9, 2026 | Assignment 1 | Defined the problem, stakeholders, scope, and initial workflow. |
+| November 16, 2026 | Assignment 2 | Defined functional requirements, correctness rules, quality targets, and alternative approaches. |
+| November 22, 2026 | Assignment 3 | Selected the two-node approach, defined architecture and interfaces, and documented feasibility work. |
+| November 22, 2026 | Feedback revision | Addressed upload conflicts, timing conditions, source limitations, and documentation consistency. |
 
-    Topic: High Availability, Load Balancing, and Replication
+### References
 
-    Link: https://www.postgresql.org/docs/current/high-availability.html
+[1] Los Angeles County District Attorney's Office. Case Management System Solution, RFP-DA-IT01.
 
-    The documentation outlines the current methods for database replication and high availability. It provides some insight into how persistent information can be duplicated between systems and the role of standby systems in recovery.
+https://camisvr.co.la.ca.us/LACoBids/BidLookUp/BidDetail?BidNumber=RFP-DA-IT01
 
-    Database replication using PostgreSQL is distinct from PDF replication. My proposed prototype will use PostgreSQL for document metadata while exploring PDF replication.
+[2] PostgreSQL Global Development Group. High Availability, Load Balancing, and Replication.
 
-    Source 3: Course Handbook
-
-    Name of source: Chapters 1-4 – Distributed Systems & Software Design Fundamentals
-
-    Source: Class materials provided by the professor.
-
-    These chapters cover communicating processes, client/server systems, persistence of data, partial failures, software design, Markdown for documentation, evidence labels, and narrowing down the scope of a student project.
+https://www.postgresql.org/docs/current/high-availability.html
