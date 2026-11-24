@@ -214,9 +214,9 @@ Least-connected routing is another established approach described by NGINX \[2\]
 
 Figure 1 in Section 1 shows the context. A researcher submits a list and retrieves its numerical summary. An administrator reads the run report. Inside the prototype boundary, one coordinator and four worker processes communicate on one machine through local HTTP requests. Services A and B are logical processing groups. Each has a waiting queue owned by the coordinator and an assignment of worker processes.
 
-![A client submits to one coordinator. The coordinator owns both queues and worker assignments. Workers in groups A and B claim jobs and report completion. The coordinator exports a local run file.](assets/architecture.png)![][image2]
+![The coordinator manages both queues and assigns workers. Workers claim jobs and report their results.](architecture.png)
 
-*Figure 2\. Process boundaries and state ownership. Each arrow to a worker group represents a worker request and the coordinator’s reply.* [Editable diagram](http://assets/architecture.dot)
+*Figure 2. The coordinator owns the queues and worker assignments. The arrows show how workers request jobs and report results.*
 
 The coordinator keeps the two queues, job records, tie-breaking state, and a map of each worker’s service and current job in memory. All handlers that change these records use the same lock. An idle worker asks for a job. Under the lock, the coordinator looks up its current assignment, removes the oldest waiting job from that queue and marks the job and worker busy. The worker computes outside the lock, then sends its result. Under the lock, completion records the result, frees the worker and checks whether an idle worker can help the other service. A run file saves outcomes, assignments and timestamps for comparison. Live queues last for one run.
 
